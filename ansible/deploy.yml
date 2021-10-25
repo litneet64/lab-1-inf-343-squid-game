@@ -1,0 +1,10 @@
+---
+- name: Test Ansible
+  hosts: all
+  tasks:
+  - name: Step 1
+    shell: |
+      echo "hello from $HOSTNAME" > "ansible_was_here"
+    args:
+      chdir: "$HOME"
+      creates: ".ansible_check"
