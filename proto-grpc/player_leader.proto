@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package proto-grpc;
+
+//
+// PLAYER - LEADER COMMS
+//
+
+service GameInteraction {
+  rpc PlayerSend (PlayerToLeaderRequest) returns (PlayerToLeaderReply) {}
+}
+
+
+// player to leader - movement || join game
+message PlayerToLeaderRequest {
+  optional uint32 player_id = 1;
+  enum msgType {
+    MOVE = 0;
+    JOIN_GAME = 1;
+  }
+  optional msgType msg = 2;
+}
+
+// leader to player - player state || accept join
+message PlayerToLeaderReply {
+  enum rspType {
+    STATE = 0;
+    ACCEPT_JOIN = 1;
+  }
+  optional rspType msg = 1;
+}

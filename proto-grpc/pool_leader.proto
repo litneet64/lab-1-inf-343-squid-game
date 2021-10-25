@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package proto-grpc;
+
+
+//
+// LEADER - POOL COMMS
+//
+
+service Prize {
+  rpc GetPrize (CurrentPoolRequest) returns (CurrentPoolReply) {}
+}
+
+// leader to pool - get current accumulated prize
+message CurrentPoolRequest {
+  optional uint32 prize = 1;
+}
+
+// pool to leader - sends current accum prize
+message CurrentPoolReply {
+  optional uint32 curr_prize = 1;
+}
