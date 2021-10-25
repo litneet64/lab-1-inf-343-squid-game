@@ -19,8 +19,11 @@ jobs:
       run: |
         curl -LO $PB_URL/$PROTO_VER/$ZIP_NAME
         unzip $ZIP_NAME -d $HOME/.local
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+        
       env:
         PB_URL: "https://github.com/protocolbuffers/protobuf/releases/download"
         PROTO_VER: "v3.19.0"
@@ -31,8 +34,6 @@ jobs:
         protoc --go_out=. --go_opt=paths=source_relative \
         --go-grpc_out=. --go-grpc_opt=paths=source_relative \
         $(find ./ -name "*.proto")
-      env:
-        PATH: "$PATH:$HOME/.local/bin:$(go env GOPATH)/bin"
 
     - name: Build Project
       run: go build -o ./squid-bin -v ./...
