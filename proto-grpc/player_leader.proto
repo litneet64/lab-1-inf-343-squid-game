@@ -7,7 +7,7 @@ package proto-grpc;
 //
 
 service GameInteraction {
-  rpc PlayerSend (PlayerToLeaderRequest) returns (PlayerToLeaderReply) {}
+  rpc PlayerSend (PlayerToLeaderRequest) returns (PlayerToLeaderReply);
 }
 
 

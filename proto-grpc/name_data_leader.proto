@@ -8,11 +8,11 @@ package proto-grpc;
 //
 
 service PlayerHistory {
-  rpc GetPlayerHistory (PlayerHistoryRequest) returns (PlayerHistoryReply) {}
+  rpc GetPlayerHistory (PlayerHistoryRequest) returns (PlayerHistoryReply);
 }
 
 service RoundStatus {
-  rpc SendAllMoves (AllPlayerMovesRequest) returns (AllPlayerMovesReply) {}
+  rpc SendAllMoves (AllPlayerMovesRequest) returns (AllPlayerMovesReply);
 }
 
 // namenode to leader - player's movement history

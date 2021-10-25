@@ -8,7 +8,7 @@ package proto-grpc;
 //
 
 service Prize {
-  rpc GetPrize (CurrentPoolRequest) returns (CurrentPoolReply) {}
+  rpc GetPrize (CurrentPoolRequest) returns (CurrentPoolReply);
 }
 
 // leader to pool - get current accumulated prize
