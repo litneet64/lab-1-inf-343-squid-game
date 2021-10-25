@@ -15,11 +15,16 @@ jobs:
       with:
         go-version: 1.15.15
 
-    - name: Set up protobuf
+    - name: Set up protobuf + gRPC
       run: |
-        apt install -y protobuf-compiler
+        curl -LO $PB_URL/$PROTO_VER/$ZIP_NAME
+        unzip $ZIP_NAME -d $HOME/.local
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+      env:
+        PB_URL: "https://github.com/protocolbuffers/protobuf/releases/download"
+        PROTO_VER: "v3.19.0"
+        ZIP_NAME: "protoc-3.19.0-linux-x86_64.zip"
 
     - name: Compile protobufs
       run: |
@@ -27,7 +32,7 @@ jobs:
         --go-grpc_out=. --go-grpc_opt=paths=source_relative \
         $(find ./ -name "*.proto")
       env:
-        PATH: "$PATH:$(go env GOPATH)/bin"
+        PATH: "$PATH:$HOME/.local/bin:$(go env GOPATH)/bin"
 
     - name: Build Project
       run: go build -o ./squid-bin -v ./...
