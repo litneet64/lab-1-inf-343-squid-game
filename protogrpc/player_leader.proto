@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package proto-grpc;
+option go_package = "protogrpc/;protogrpc";
+
+package protogrpc;
 
 //
 // PLAYER - LEADER COMMS

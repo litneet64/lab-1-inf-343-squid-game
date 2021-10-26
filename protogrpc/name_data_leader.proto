@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package proto-grpc;
+option go_package = "protogrpc/;protogrpc";
+
+package protogrpc;
 
 //
 // NAMENODE - LEADER COMMS
@@ -27,7 +29,7 @@ message PlayerHistoryReply {
 
 // leader to namenode || namenode to datanode - send current move for all player's
 message AllPlayerMovesRequest {
-  repeated string player_move = 1 [packed = true];
+  repeated uint32 player_move = 1 [packed = true];
 }
 
 // namenode to leader || datanode to namenode - acknowledge sender's message
