@@ -44,11 +44,10 @@ jobs:
     - name: Deploy
       uses: dawidd6/action-ansible-playbook@v2.5.0
       env:
-        JUMP_HOST: ${{ secrets.BASTION_HOST }}
+        JUMP_HOST: "alumno@2.tcp.ngrok.io:18885"
       with:
         playbook: ./ansible/deploy.yml
         key: ${{ secrets.ANSIBLE_KEY }}
-        
         known_hosts: ${{ secrets.KNOWN_HOSTS }}
         options: |
           -i ./ansible/hosts.ini
