@@ -46,6 +46,8 @@ jobs:
       with:
         playbook: ./ansible/deploy.yml
         key: ${{ secrets.ANSIBLE_KEY }}
-        inventory: ./ansible/hosts.ini
+      options: |
+          -i ./ansible/hosts.ini
+      
       env:
         JUMP_HOST: ${{ secrets.BASTION_HOST }}
