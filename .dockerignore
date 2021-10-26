@@ -1,0 +1,9 @@
+# git related files
+.git/
+.github/
+
+# dockerfile
+Dockerfile
+
+# ansible related files
+ansible/
