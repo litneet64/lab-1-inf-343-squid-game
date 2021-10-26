@@ -46,6 +46,7 @@ jobs:
       with:
         playbook: ./ansible/deploy.yml
         key: ${{ secrets.ANSIBLE_KEY }}
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
         options: |
           -i ./ansible/hosts.ini
           --extra-vars "JUMP_HOST=${{ secrets.BASTION_HOST }}"
