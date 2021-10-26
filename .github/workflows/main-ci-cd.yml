@@ -48,4 +48,4 @@ jobs:
         key: ${{ secrets.ANSIBLE_KEY }}
         options: |
           -i ./ansible/hosts.ini
-          --extra-vars JUMP_HOST=${{ secrets.BASTION_HOST }}
+          --extra-vars "JUMP_HOST=${{ secrets.BASTION_HOST }}"
