@@ -36,7 +36,10 @@ jobs:
         $(find ./ -name "*.proto")
 
     - name: Build Project
-      run: go build -o ./squid-bin -v ./...
+      run: |
+        for dir in leader namenode datanode player pool; do \
+            go build -o $dir/$dir -v $dir/main.go; \
+        done  
 
     - name: Deploy
       uses: dawidd6/action-ansible-playbook@v2.5.0
