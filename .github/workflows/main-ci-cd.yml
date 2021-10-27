@@ -51,3 +51,4 @@ jobs:
         known_hosts: ${{ secrets.KNOWN_HOSTS }}
         options: |
           -i ./ansible/hosts.ini
+          -vvvv
