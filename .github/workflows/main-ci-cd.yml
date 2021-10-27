@@ -48,6 +48,10 @@ jobs:
       with:
         playbook: ./ansible/deploy.yml
         key: ${{ secrets.ANSIBLE_KEY }}
+        known_hosts: |
+          |1|qQdRJSl+Y2s1pZSZPFrQEwr9c+Y=|ZNNBhv3cI6qEetXf7OfoEuFplqo= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC3EIMtrzlDTytZMwF3Wg8A7G/ceuijd1y4Y1wFm4fstoU4ySxtypQyqLqVyDkrgOv4KFna+0/1DvcNWrnSlsO8TbttY/O3dyInwcDXiMStRq9O6eb6Egf2ay64NTRZ4pEeK2R+VP1WASvlvxUzb4F+9i9EOu6Ap6Qq9aNjLlsmXgGnVQGACruK213J/fwfTHkJmlMWy4TNPWjLJxd26F8fQYXep4yZmRLReEVmV8bN5wAd/8UdLMyzxHwEBSb+v+bM/rwopJ02wKHpswa5bg5IQGTqc5wpea/6ckfpBRYgupesHGYCLJ1Va2NK/fbPnFV+E/7j6Ty0pL+fMCzxGZl/
+          |1|tIWy5hy8jldg7rJaHiFhuSOxdSg=|UlOTb266fx5Xq3VHB9jHrqw/Tas= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBIKHr/lSRC6Ul3LaoZUs8/2K3Zjqq/Vl+lqUHVnE4+VubFJR6UcQmpEBWlEkWKvIavDGTOLQnnAKJZ4uG4EaqkE=
+          |1|ll/q56DK4JqlkRjgLLHvOSe9M2w=|Or5Sf49zhha1DismEMy6VNr2xuk= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINn0F1FHddthgnv6KMXirkKXjk21f/yrfj2H+D+z6eQ6
         options: |
           -i ./ansible/hosts.ini
           -vvvv
