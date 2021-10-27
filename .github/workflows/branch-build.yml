@@ -36,5 +36,8 @@ jobs:
         --go-grpc_out=. --go-grpc_opt=paths=source_relative \
         $(find ./ -name "*.proto")
 
-    - name: Build
-      run: go build -v ./...
+    - name: Build Project
+      run: |
+        for dir in leader namenode datanode player pool; do \
+            go build -o $dir/$dir -v $dir/main.go; \
+        done  
