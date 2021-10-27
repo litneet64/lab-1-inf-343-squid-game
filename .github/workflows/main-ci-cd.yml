@@ -41,13 +41,19 @@ jobs:
             go build -o $dir/$dir -v $dir/main.go; \
         done  
 
+    - name: Add key to ssh-agent
+      run: |
+        eval $(ssh-agent)
+        ssh-add - <<< "$SSH_KEY"
+      env:
+        SSH_KEY: ${{ secrets.ANSIBLE_KEY }}
+
     - name: Deploy
       uses: dawidd6/action-ansible-playbook@v2.5.0
       env:
         JUMP_HOST: "alumno@2.tcp.ngrok.io:18885"
       with:
         playbook: ./ansible/deploy.yml
-        key: '${{ secrets.ANSIBLE_KEY }}'
         options: |
           -i ./ansible/hosts.ini
           -vvvv
