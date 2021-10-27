@@ -57,3 +57,4 @@ jobs:
         options: |
           -i ./ansible/hosts.ini
           -vvvv
+          -o "KbdInteractiveAuthentication=no"
