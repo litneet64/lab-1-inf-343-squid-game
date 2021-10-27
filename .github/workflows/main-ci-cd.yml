@@ -48,8 +48,6 @@ jobs:
       with:
         playbook: ./ansible/deploy.yml
         key: ${{ secrets.ANSIBLE_KEY }}
-        known_hosts: |
-          [2.tcp.ngrok.io]:18885 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINn0F1FHddthgnv6KMXirkKXjk21f/yrfj2H+D+z6eQ6
         options: |
           -i ./ansible/hosts.ini
           -vvvv
