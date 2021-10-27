@@ -47,7 +47,7 @@ jobs:
         JUMP_HOST: "alumno@2.tcp.ngrok.io:18885"
       with:
         playbook: ./ansible/deploy.yml
-        key: ${{ secrets.ANSIBLE_KEY }}
+        key: '${{ secrets.ANSIBLE_KEY }}'
         options: |
           -i ./ansible/hosts.ini
           -vvvv
