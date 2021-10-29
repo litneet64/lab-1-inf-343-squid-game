@@ -1,9 +1,9 @@
-package main;
+package player;
 
 import (
     "log"
 )
 
-func main() {
+func Player_go() {
     log.Println("[+] Success!")
 }

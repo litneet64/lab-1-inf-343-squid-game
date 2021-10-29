@@ -1,9 +1,9 @@
-package main;
+package datanode;
 
 import (
     "log"
 )
 
-func main() {
+func Datanode_go() {
     log.Println("[+] Success!")
 }

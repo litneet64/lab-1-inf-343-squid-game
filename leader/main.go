@@ -1,9 +1,9 @@
-package main;
+package leader;
 
 import (
     "log"
 )
 
-func main() {
+func Leader_go() {
     log.Println("[+] Success!")
 }
