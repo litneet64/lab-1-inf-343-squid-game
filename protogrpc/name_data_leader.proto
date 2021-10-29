@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "protogrpc/;protogrpc";
+option go_package = "github.com/litneet64/lab-2-squid-game/protogrpc";
 
 package protogrpc;
 
