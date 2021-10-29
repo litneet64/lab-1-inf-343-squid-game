@@ -1,9 +1,9 @@
-package main;
+package namenode;
 
 import (
     "log"
 )
 
-func main() {
+func Namenode_go() {
     log.Println("[+] Success!")
 }

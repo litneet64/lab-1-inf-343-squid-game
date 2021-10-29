@@ -24,7 +24,7 @@ jobs:
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
         echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-        
+
       env:
         PB_URL: "https://github.com/protocolbuffers/protobuf/releases/download"
         PROTO_VER: "v3.19.0"
@@ -37,7 +37,4 @@ jobs:
         $(find ./ -name "*.proto")
 
     - name: Build Project
-      run: |
-        for dir in leader namenode datanode player pool; do \
-            go build -o $dir/$dir -v $dir/main.go; \
-        done  
+      run: go build -o ./squid-bin -v ./*.go

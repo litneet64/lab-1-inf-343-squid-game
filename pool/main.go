@@ -1,9 +1,9 @@
-package main;
+package pool;
 
 import (
     "log"
 )
 
-func main() {
+func Pool_go() {
     log.Println("[+] Success!")
 }

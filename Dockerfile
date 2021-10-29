@@ -11,7 +11,7 @@ RUN apt update && apt install unzip -y \
     && curl -LO $PB_URL/$PROTO_VER/$ZIP_NAME \
     && unzip $ZIP_NAME -d $HOME/.local \
     && go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26 \
-    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1 
+    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
 
 COPY . ./
 
@@ -19,9 +19,7 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     $(find ./ -name "*.proto")
 
-RUN for dir in leader namenode datanode player pool; do \
-    go build -o $dir/$dir -v $dir/main.go; \
-    done
+RUN go build -o ./squid-bin -v ./*.go
 
 CMD ["-c", "cat go.mod && echo -------- && cat go.sum"]
 ENTRYPOINT ["/bin/bash"]
