@@ -48,8 +48,8 @@
   tasks:
   - name: Start player \#{{ item }} on background
     shell:
-      cmd: "./squid-game/squid-bin player_bot &"
-      chdir: "$HOME/squid-bin"
+      cmd: "./squid-bin player_bot &"
+      chdir: "$HOME/squid-game"
     loop:
       - 1
       - 2
