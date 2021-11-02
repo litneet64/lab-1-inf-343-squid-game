@@ -4,7 +4,7 @@
   tasks:
   - name: Deploy bin on all hosts
     copy:
-      src: "./squid-bin"
+      src: "../squid-bin"
       dest: "$HOME/squid-game/squid-bin"
       mode: "0755"
   - name: Kill current program related processes on all hosts
