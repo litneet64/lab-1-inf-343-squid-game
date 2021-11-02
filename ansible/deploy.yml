@@ -1,10 +1,56 @@
 ---
-- name: Test Ansible
+- name: Setup for all hosts
   hosts: all
   tasks:
-  - name: Step 1
+  - name: Deploy bin on all hosts
+    copy:
+      src: "./squid-bin"
+      dest: "$HOME/squid-game/squid-bin"
+      mode: "0755"
+  - name: Kill current program related processes on all hosts
     shell: |
-      echo "hello from $HOSTNAME" > "ansible_was_here"
-    args:
-      chdir: "$HOME"
-      creates: ".ansible_check"
+      pkill --echo squid-bin
+
+- name: Start leader
+  hosts: leaders
+  tasks:
+  - name: Run on background
+    shell:
+      cmd: "./squid-bin leader &"
+      chdir: "$HOME/squid-game"
+
+- name: Start namenodes
+  hosts: namenodes
+  tasks:
+  - name: Run on background
+    shell:
+      cmd: "./squid-bin namenode &"
+      chdir: "$HOME/squid-game"
+
+- name: Start datanodes
+  hosts: datanodes
+  tasks:
+  - name: Run on background
+    shell:
+      cmd: "./squid-bin datanode &"
+      chdir: "$HOME/squid-game"
+
+- name: Start pool
+  hosts: pool
+  tasks:
+  - name: Run on background
+    shell:
+      cmd: "./squid-bin pool &"
+      chdir: "$HOME/squid-game"
+
+- name: Start bot players
+  hosts: players
+  tasks:
+  - name: Start player \#{{ item }} on background
+    shell:
+      cmd: "./squid-game/squid-bin player_bot &"
+      chdir: "$HOME/squid-bin"
+    loop:
+      - 1
+      - 2
+      - 3
