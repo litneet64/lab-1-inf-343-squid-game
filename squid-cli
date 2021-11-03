@@ -8,15 +8,20 @@ if [[ $mode == "build" || $mode == "b" ]]; then
     podman build -t squid-game .
 
 elif [[ $mode == "run" || $mode == "r" ]]; then
-    echo -e "running the following command:\n\t$ podman run -it --rm squid-game -c "./squid-bin $@"\n"
+    echo -e "running the following command:\n\t$ podman run -it --rm squid-game -c \"./squid-bin $@\"\n"
     podman run -it --rm squid-game -c "./squid-bin $@"
 
 elif [[ $mode == "keep-run" || $mode == "keep" || $mode == "k" ]]; then
-    echo -e "running the following command:\n\t$ podman run -it squid-game -c "./squid-bin $@"\n"
+    echo -e "running the following command:\n\t$ podman run -it squid-game -c \"./squid-bin $@\"\n"
     podman run -it squid-game -c "./squid-bin $@"
 
+elif [[ $mode == "execute" || $mode == "exe" || $mode == "e" ]]; then
+    echo -e "running the following command:\n\t$ podman run -it squid-game -c \"$@\"\n"
+    podman run -it squid-game -c "$@"
+
 else
-    echo -e 'usage: ./squid [build|b]                # build docker'
-    echo -e '  or:  ./squid [run|r] [args ...]       # run and remove image'
-    echo -e '  or:  ./squid [keep-run|k] [args ...]  # run and do not remove image\n'
+    echo -e 'usage: ./squid b[uild]                  # build image'
+    echo -e '  or:  ./squid r[un] [args ...]         # run binary and remove image'
+    echo -e '  or:  ./squid k[eep[-run]] [args ...]  # just run binary'
+    echo -e '  or:  ./squid e[xecute] [args ...]     # run commands in shell'
 fi
