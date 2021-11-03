@@ -23,11 +23,12 @@ func Player_bot_go() {
 func Player_human_go() {
 	log.Println("[+] Hello from Player")
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+
 	if err != nil {
 		log.Fatalf("[Player] Could not connect to target: %v", err)
 	} else {
-		log.Println("[+] Success!")
+		log.Println("[Player] Connection successful")
 	}
 	defer conn.Close()
 

@@ -33,11 +33,10 @@ func Leader_go() {
 	}
 
 	leader_srv := grpc.NewServer()
-	pb.RegisterGameInteraction(leader_srv, &server{})
+	pb.RegisterGameInteractionServer(leader_srv, &server{})
 	log.Printf("[Leader] Listening at %v", lis.Addr())
 
 	if err := leader_srv.Serve(lis); err != nil {
 		log.Fatalf("[Leader] Could not serve: %v", err)
 	}
-
 }
