@@ -3,8 +3,10 @@ package leader
 import (
 	"context"
 	"log"
+	"net"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -23,6 +25,19 @@ func (s *server) PlayerSend(ctx context.Context, in *pb.PlayerToLeaderRequest) (
 }
 
 func Leader_go() {
+	log.Println("[+] Hello from Leader")
 
-	log.Println("[+] Success!")
+	lis, err := net.Listen("tcp", "localhost:50051")
+	if err != nil {
+		log.Fatalf("[Leader] Could not listen: %v", err)
+	}
+
+	leader_srv := grpc.NewServer()
+	pb.RegisterGameInteraction(leader_srv, &server{})
+	log.Printf("[Leader] Listening at %v", lis.Addr())
+
+	if err := leader_srv.Serve(lis); err != nil {
+		log.Fatalf("[Leader] Could not serve: %v", err)
+	}
+
 }

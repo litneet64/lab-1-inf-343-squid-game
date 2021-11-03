@@ -15,29 +15,30 @@ const (
 	defaultName = "leader"          // También
 )
 
-
 func Player_bot_go() {
-    log.Println("[+] Hello from bot player!")
+	log.Println("[+] Hello from bot player!")
 
-	
 }
 
 func Player_human_go() {
-    log.Println("[+] Hello from player!")
-    conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	log.Println("[+] Hello from Player")
+
+	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("No funca :( : %v", err)
+		log.Fatalf("[Player] Could not connect to target: %v", err)
 	} else {
 		log.Println("[+] Success!")
 	}
 	defer conn.Close()
+
 	client := pb.NewGameInteractionClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	response, err := client.PlayerSend(ctx, &pb.PlayerToLeaderRequest{Msg: pb.PlayerToLeaderRequest_JOIN_GAME.Enum()})
 	if err != nil {
-		log.Fatalf("Error de mensaje(?): %v", err)
+		log.Fatalf("[Player] Could not send message to server: %v", err)
 	}
-	log.Printf("Mensaje: %v", response.GetMsg())
+
+	log.Printf("[Player] Message response: %v", response.GetMsg())
 }
