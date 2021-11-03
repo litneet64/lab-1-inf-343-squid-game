@@ -19,7 +19,7 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     $(find ./ -name "*.proto")
 
-RUN go build -o ./squid-bin -v ./*.go
+RUN go build -o ./squid-bin -v -ldflags '-extldflags "-static"' -v ./*.go
 
 CMD ["-c", "cat go.mod && echo -------- && cat go.sum"]
 ENTRYPOINT ["/bin/bash"]
