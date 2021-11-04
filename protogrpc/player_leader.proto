@@ -21,6 +21,7 @@ message PlayerToLeaderRequest {
     JOIN_GAME = 1;
   }
   optional msgType msg = 2;
+  optional uint32 moves = 3;
 }
 
 // leader to player - player state || accept join
@@ -30,4 +31,5 @@ message PlayerToLeaderReply {
     ACCEPT_JOIN = 1;
   }
   optional rspType msg = 1;
+  optional uint32 state = 2;
 }

@@ -11,8 +11,7 @@ import (
 )
 
 func show_help() {
-  log.Printf("[!] Usage: %s <role [leader/player_bot/player/namenode/datanode/pool]>", os.Args[0])
-  os.Exit(127)
+  log.Fatalf("[!] Usage: %s <role [leader/player_bot/player/namenode/datanode/pool]>", os.Args[0])
 }
 
 
@@ -25,9 +24,9 @@ func main() {
       case "leader":
         leader.Leader_go()
       case "player_bot":
-        player.Player_bot_go()
+        player.Player_go("bot")
       case "player":
-        player.Player_human_go()
+        player.Player_go("human")
       case "namenode":
         namenode.Namenode_go()
       case "datanode":
