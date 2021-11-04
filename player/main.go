@@ -8,6 +8,7 @@ import (
 	"os"
 	"fmt"
 	"strconv"
+	"math/rand"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
@@ -19,13 +20,18 @@ const (
 )
 
 
-func sendMove(ctx context.Context, client *pb.GameInteractionClient, moves uint32) (resp string, err error) {
-	response, err := client.PlayerSend(ctx, &pb.PlayerToLeaderRequest{Msg: pb.PlayerToLeaderRequest_MOVE.Enum(), Moves: moves})
+func sendMove(ctx context.Context, client pb.GameInteractionClient, moves *uint32) (resp uint32, err error) {
+	response, err := client.PlayerSend(ctx,
+			&pb.PlayerToLeaderRequest{
+				Msg: pb.PlayerToLeaderRequest_MOVE.Enum(),
+				Moves: moves,
+			})
+
 	if err != nil {
 		log.Fatalf("[Player] Could not send message to server: %v", err)
 	}
 
-	resp := response.GetMsg()
+	resp = uint32(response.GetMsg())
 
 	log.Printf("[Player] Message response: %v", resp)
 	return
@@ -34,21 +40,24 @@ func sendMove(ctx context.Context, client *pb.GameInteractionClient, moves uint3
 
 // user movement function
 func getInput() (n uint32, err error) {
-	var inp string
-	err = nil
-
 	fmt.Print("> Insert move: ")
 	reader := bufio.NewReader(os.Stdin)
 
-	if inp, err := reader.ReadString("\n"); err != nil {
+	inp, err := reader.ReadString('\n')
+
+	if err != nil {
 		log.Println("[Error] While reading your input!")
-		return
+		return n, err
 	}
 
-	if n, err = strconv.Atoi(inp); err {
+	n_int, err := strconv.Atoi(inp)
+
+	if err != nil {
 		log.Println("[Error] Can only parse integers!")
-		return
+		return n, err
 	}
+
+	n = uint32(n_int)
 
 	return
 }
@@ -57,13 +66,16 @@ func getInput() (n uint32, err error) {
 // bot movement generator
 func autoMove() (n uint32, err error) {
 	// CHECK: that this is the correct range
-	n = rand.Intn(10)
+	n = uint32(rand.Intn(10))
 
 	return
 }
 
 
 func Player_go(player_type string) {
+	var mov uint32
+	var err error
+
 	log.Println("Started New Game")
 	log.Println("Timeout for moves between every round is 10 [s]")
 
@@ -81,10 +93,14 @@ func Player_go(player_type string) {
 	defer cancel()
 
 	// request to join game
-	p_id := rand.Intn(2 << 32 - 1)
-	res, err := client.PlayerSend(ctx, &pb.PlayerToLeaderRequest{Msg: pb.PlayerToLeaderRequest_JOIN_GAME.Enum(), PlayerId: p_id})
+	p_id := uint32(rand.Intn(2 << 32 - 1))
+	res, err := client.PlayerSend(ctx,
+		&pb.PlayerToLeaderRequest{
+			Msg: pb.PlayerToLeaderRequest_JOIN_GAME.Enum(),
+			PlayerId: &p_id,
+		})
 
-	if err {
+	if err != nil {
 		log.Fatalf("[Error] Couldn't connect to leader\n")
 	}
 
@@ -98,19 +114,24 @@ func Player_go(player_type string) {
 
 		switch player_type {
 			case "bot":
-				mov := autoMove()
+				mov, err = autoMove()
+				if err != nil {
+					log.Println("[Error] While making automove: %v", err)
+				}
 			case "human":
 				// get user input and parse to int
-				if mov, err := getInput(); err {
+				mov, err = getInput()
+				if err != nil {
 					log.Println("[Error] While reading user input: %v", err)
-					mov = autoMove()
+					mov, err = autoMove()
 				}
 			default:
 				log.Fatalf("[Error] Wrong usage of Player_go function!\n")
 		}
 
 		// send player move and recieve player status
-		if state_res, err := sendMove(ctx, &client, mov); err {
+		_, err := sendMove(ctx, client, &mov)
+		if err != nil {
 			log.Println("[Error] While sending moves: %v", err)
 		}
 
