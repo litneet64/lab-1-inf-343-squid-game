@@ -39,6 +39,7 @@ func createFile(player uint32, game uint32, moves []RoundInfo) {
 	}
 	f.Sync()
 }
+
 func appendRound(player uint32, game uint32, moves []RoundInfo) {
 	f, err := os.Open(fmt.Sprintf("jugador_%d__etapa_%d.txt", player, game))
 	check(err)
@@ -50,24 +51,25 @@ func appendRound(player uint32, game uint32, moves []RoundInfo) {
 	}
 	f.Sync()
 }
-
+// parses player moves to RoundInfo
 func getGame(player uint32, game uint32) []RoundInfo {
-    var game []RoundInfo
+    var game []RoundInfo = []
     f, err := os.Open(fmt.Sprintf("jugador_%d__etapa_%d.txt", player, game))
     scanner := bufio.NewScanner(f)
-    for scanner.Scan() {
-        game.append(RoundInfo{playerId: player, playerMove: scanner.Int})
+    for scanner.Scan() { 
+        game.append(RoundInfo{playerId: player, playerMove: scanner.Int}) // puede fallar
     }
 
     if err := scanner.Err(); err != nil {
         log.Fatal(err)
     }
-}
-
     return game
-
 }
 
+// The server-side implementation of the rpc function that the namenode calls
+func (s *server) TransferPlayerMoves(ctx context.Context, in *pb.PlayersMoves) (*pb.Empty, error) {
+	return &pb.Empty{}, nil
+}
 
 func Datanode_go() {
 	// Set the listening port for the server
