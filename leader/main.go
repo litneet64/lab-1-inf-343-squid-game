@@ -13,8 +13,6 @@ const (
 	port = ":50051"
 )
 
-type PlayerToLeaderRequestMsgType int32
-
 type server struct {
 	pb.UnimplementedGameInteractionServer
 }
