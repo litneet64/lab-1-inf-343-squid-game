@@ -51,6 +51,7 @@ func appendRound(player uint32, game uint32, moves []RoundInfo) {
 	}
 	f.Sync()
 }
+
 // parses player moves to RoundInfo
 func getGame(player uint32, game uint32) []RoundInfo {
     var game []RoundInfo = []
