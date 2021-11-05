@@ -48,13 +48,13 @@ func writeToFile(player uint32, stage uint32, move uint32) {
 }
 
 // Parses registered player moves from it's file and returns them
-func getPlayerStageRounds(player uint32, stage uint32) []uint32 {
+func GetPlayerStageRounds(player uint32, stage uint32) []uint32 {
 	// List of all player moves for a given stage
 	var moves []uint32
 
 	// Read player file for the given stage
-	f, fErr := os.Open(fmt.Sprintf("jugador_%d__etapa_%d.txt", player, stage))
-	checkIfErr(fErr)
+	f, err := os.Open(fmt.Sprintf("jugador_%d__etapa_%d.txt", player, stage))
+	checkIfErr(err)
 
 	// Start saving each move
 	scanner := bufio.NewScanner(f)
@@ -63,12 +63,13 @@ func getPlayerStageRounds(player uint32, stage uint32) []uint32 {
 		checkIfErr(err)
 		moves = append(moves, uint32(move))
 	}
-	f.Sync()
 
 	return moves
 }
 
-// The server-side implementation of the rpc function that the namenode calls
+// The server-side implementation of the rpc function that the namenode
+// calls. Transfers all moves that the group of players do in a specific
+// round and stage.
 func (s *server) TransferPlayerMoves(ctx context.Context, in *pb.PlayersMoves) (*pb.Empty, error) {
 	moves := in.GetPlayersMoves()
 	stage := in.GetStage()
@@ -80,6 +81,19 @@ func (s *server) TransferPlayerMoves(ctx context.Context, in *pb.PlayersMoves) (
 
 	// No reply is expected, so return empty message
 	return &pb.Empty{}, nil
+}
+
+// The server-side implementation of the rpc function that the namenode
+// calls. Given a player id and stage, send all moves
+func (s *server) RequestPlayerData(ctx context.Context, in *pb.DataRequestParams) (*pb.StageData, error) {
+	player := in.GetPlayerId()
+	stage := in.GetStage()
+
+	// Get moves by reading the player's files
+	moves := GetPlayerStageRounds(player, stage)
+
+	// Send moves to the namenode
+	return &pb.StageData{PlayerMoves: moves}, nil
 }
 
 func Datanode_go() {

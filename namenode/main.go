@@ -1,8 +1,12 @@
 package namenode
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
@@ -14,6 +18,12 @@ type RoundInfo struct {
 	playerMove uint32
 }
 
+type Client struct {
+	id     uint32
+	addr   string
+	client pb.DataRegistryServiceClient
+}
+
 var (
 	datanodeAddr = [3]string{
 		"localhost:50051",
@@ -22,8 +32,14 @@ var (
 	}
 )
 
+func checkIfErr(e error) {
+	if e != nil {
+		log.Fatal(e)
+	}
+}
+
 // Save the given round info into a txt file of the given datanode
-func Register(client pb.DataRegistryServiceClient, stage uint32, round uint32, roundInfo []RoundInfo) {
+func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage uint32, round uint32, roundInfo []RoundInfo) {
 	// Start timed context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -47,18 +63,93 @@ func Register(client pb.DataRegistryServiceClient, stage uint32, round uint32, r
 		})
 }
 
-// Receive round info from datanode
-func Retrieve() {
+// Recieves all the moves that a player has made.
+func RetrievePlayerData(clients []Client, player uint32) {
+	var requestQueue []*Client
 
+	// Map each address to the corresponding client object
+	addrToClient := make(map[string]*Client, 3)
+	for i := 0; i < 3; i++ {
+		addrToClient[clients[i].addr] = &clients[i]
+	}
+
+	// For each stage, get if there is an address associated to
+	// moves of the player
+	for i := 0; i < 3; i++ {
+		addr, err := GetMoveLocations(player, uint32(i))
+
+		if err == nil {
+			requestQueue = append(requestQueue, addrToClient[addr])
+
+		} else {
+			break
+		}
+	}
+
+	// Start timed context
+	_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	/* 	for i := 0; i < len(requestQueue); i++ {
+		stage := uint32(i)
+
+		// Request to datanode and parse output
+		data, _ := requestQueue[i].client.RequestPlayerData(ctx,
+			&pb.DataRequestParams{
+				PlayerId: &player,
+				Stage:    &stage,
+			})
+
+		// 'data' should be sent to leader
+	} */
+}
+
+// Saves node locations of player moves for each stage
+func SaveMoveLocations(player uint32, stage uint32, address string) {
+
+	f, err := os.OpenFile("tablemap.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	checkIfErr(err)
+	defer f.Close()
+
+	locationtemplate := "Jugador_%d Ronda_%d %v\n"
+	f.WriteString(fmt.Sprintf(locationtemplate, player, stage, address))
+	f.Sync()
+}
+
+// Returns datanode address where player moves for a stage are located,
+// return empty string if not found
+func GetMoveLocations(player uint32, stage uint32) (string, error) {
+	// Checks if save file exists
+	_, fErr := os.Stat("tablemap.txt")
+	if fErr != nil {
+		return "", fErr
+	}
+	// Open savefile
+	f, err := os.Open("tablemap.txt")
+	checkIfErr(err)
+	defer f.Close()
+	// reads each line and checks if it has requested player and stage
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		saveData := strings.Split(scanner.Text(), " ")
+
+		samePlayer := saveData[0] == fmt.Sprintf("Jugador_%d", player)
+		sameStage := saveData[1] == fmt.Sprintf("Ronda_%d", stage)
+
+		if samePlayer && sameStage {
+			return saveData[2], nil
+		}
+	}
+	return "", os.ErrNotExist
 }
 
 func Namenode_go() {
-	// Define two arrays of both connections and errors for each of the
+	// Define arrays of both connections and errors for each of the
 	// three datanodes that are connected to the namenode
 
 	var conns [3]*grpc.ClientConn
 	var errs [3]error
-	var clients [3]pb.DataRegistryServiceClient
+	var clients [3]Client
 
 	// Dial each datanode
 	for i := 0; i < 3; i++ {
@@ -66,17 +157,14 @@ func Namenode_go() {
 		if errs[i] != nil {
 			log.Fatalf("[Namenode] Error connecting to datanode #%d: \"%v\"", i, errs[i])
 		}
-		clients[i] = pb.NewDataRegistryServiceClient(conns[i])
+
+		clients[i] = Client{
+			uint32(i),
+			datanodeAddr[i],
+			pb.NewDataRegistryServiceClient(conns[i]),
+		}
 		defer conns[i].Close()
 	}
 
-	rounds := []RoundInfo{
-		{0, 1},
-		{1, 2},
-		{2, 3},
-	}
-	// Test client 0, stage 0, round 0, etc.
-	Register(clients[0], 0, 0, rounds)
-	Register(clients[0], 0, 1, rounds)
-
+	RetrievePlayerData(clients[:], 0)
 }
