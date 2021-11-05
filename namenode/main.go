@@ -87,10 +87,10 @@ func RetrievePlayerData(clients []Client, player uint32) {
 	}
 
 	// Start timed context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	_, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	for i := 0; i < len(requestQueue); i++ {
+	/* 	for i := 0; i < len(requestQueue); i++ {
 		stage := uint32(i)
 
 		// Request to datanode and parse output
@@ -101,7 +101,7 @@ func RetrievePlayerData(clients []Client, player uint32) {
 			})
 
 		// 'data' should be sent to leader
-	}
+	} */
 }
 
 // Saves node locations of player moves for each stage
