@@ -17,8 +17,8 @@ type RoundInfo struct {
 var (
 	datanodeAddr = [3]string{
 		"localhost:50051",
-		"localhost:50051",
-		"localhost:50051",
+		"localhost:50052",
+		"localhost:50053",
 	}
 )
 
@@ -77,5 +77,6 @@ func Namenode_go() {
 	}
 	// Test client 0, stage 0, round 0, etc.
 	Register(clients[0], 0, 0, rounds)
+	Register(clients[0], 0, 1, rounds)
 
 }
