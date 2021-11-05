@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"time"
+	"strings"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
