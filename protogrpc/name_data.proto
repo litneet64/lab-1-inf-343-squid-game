@@ -6,10 +6,7 @@ package protogrpc;
 
 service DataRegistryService {
     rpc TransferPlayerMoves (PlayersMoves) returns (Empty);
-}
-
-service PlayerDataService {
-    rpc RequestPlayerData (Player) returns (PlayerData);
+    rpc RequestPlayerData (DataRequestParams) returns (StageData);
 }
 
 message PlayersMoves {
@@ -22,16 +19,13 @@ message PlayersMoves {
     repeated Move players_moves = 3;
 }
 
-message Player {
+message DataRequestParams {
     optional uint32 player_id = 1;
+    optional uint32 stage = 2;
 }
 
-message PlayerData {
-    message StageData {
-        optional uint32 stage = 1;
-        repeated uint32 player_moves = 2 [packed = true];
-    }
-    repeated StageData stage = 1;
+message StageData {
+    repeated uint32 player_moves = 1 [packed = true];
 }
 
 message Empty {}

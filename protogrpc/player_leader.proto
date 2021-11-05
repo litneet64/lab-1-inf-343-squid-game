@@ -29,6 +29,7 @@ message PlayerToLeaderReply {
   enum rspType {
     STATE = 0;
     ACCEPT_JOIN = 1;
+    DENY_JOIN = 2;
   }
   optional rspType msg = 1;
   optional uint32 state = 2;
