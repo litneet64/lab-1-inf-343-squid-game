@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 
-	pb "github.com/litneet64/lab-2-squid-stage/protogrpc"
+	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
 )
 
@@ -68,16 +68,6 @@ func getPlayerStageRounds(player uint32, stage uint32) []uint32 {
 		moves = append(moves, uint32(move))
 	}
 	f.Sync()
-}
-
-// parses player moves to RoundInfo
-func getGame(player uint32, game uint32) []RoundInfo {
-    var game []RoundInfo = []
-    f, err := os.Open(fmt.Sprintf("jugador_%d__etapa_%d.txt", player, game))
-    scanner := bufio.NewScanner(f)
-    for scanner.Scan() { 
-        game.append(RoundInfo{playerId: player, playerMove: scanner.Int}) // puede fallar
-    }
 
 	return moves
 }
