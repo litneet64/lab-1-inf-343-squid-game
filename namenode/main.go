@@ -66,7 +66,6 @@ func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage uint32, round
 // Recieves all the moves that a player has made.
 func RetrievePlayerData(clients []Client, player uint32) {
 	var requestQueue []*Client
-	log.Printf("Called RetrievePlayerData")
 
 	// Map each address to the corresponding client object
 	addrToClient := make(map[string]*Client, 3)
@@ -78,11 +77,9 @@ func RetrievePlayerData(clients []Client, player uint32) {
 	// moves of the player
 	for i := 0; i < 3; i++ {
 		addr, err := GetMoveLocations(player, uint32(i))
-		log.Printf("Address found: \"%v\"", addr)
 
 		if err == nil {
 			requestQueue = append(requestQueue, addrToClient[addr])
-			log.Printf("Found client")
 
 		} else {
 			break
@@ -104,7 +101,6 @@ func RetrievePlayerData(clients []Client, player uint32) {
 			})
 
 		// 'data' should be sent to leader
-		log.Printf("Retrieved data: %v", data.GetPlayerMoves())
 	}
 }
 
