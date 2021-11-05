@@ -66,6 +66,7 @@ func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage uint32, round
 // Recieves all the moves that a player has made.
 func RetrievePlayerData(clients []Client, player uint32) {
 	var requestQueue []*Client
+	log.Printf("Called RetrievePlayerData")
 
 	// Map each address to the corresponding client object
 	addrToClient := make(map[string]*Client, 3)
@@ -75,11 +76,13 @@ func RetrievePlayerData(clients []Client, player uint32) {
 
 	// For each stage, get if there is an address associated to
 	// moves of the player
-	for i := uint32(0); i < 3; i++ {
-		addr, err := GetMoveLocations(player, i)
+	for i := 0; i < 3; i++ {
+		addr, err := GetMoveLocations(player, uint32(i))
+		log.Printf("Address found: \"%v\"", addr)
 
-		if err != nil {
-			requestQueue[i] = addrToClient[addr]
+		if err == nil {
+			requestQueue = append(requestQueue, addrToClient[addr])
+			log.Printf("Found client")
 
 		} else {
 			break
@@ -94,11 +97,14 @@ func RetrievePlayerData(clients []Client, player uint32) {
 		stage := uint32(i)
 
 		// Request to datanode and parse output
-		data, err := requestQueue[i].client.RequestPlayerData(ctx,
+		data, _ := requestQueue[i].client.RequestPlayerData(ctx,
 			&pb.DataRequestParams{
 				PlayerId: &player,
 				Stage:    &stage,
 			})
+
+		// 'data' should be sent to leader
+		log.Printf("Retrieved data: %v", data.GetPlayerMoves())
 	}
 }
 
@@ -118,25 +124,27 @@ func SaveMoveLocations(player uint32, stage uint32, address string) {
 // return empty string if not found
 func GetMoveLocations(player uint32, stage uint32) (string, error) {
 	// Checks if save file exists
-	_, fErr := os.Stat(fmt.Sprintf("tablemap.txt", player, stage))
+	_, fErr := os.Stat("tablemap.txt")
 	if fErr != nil {
 		return "", fErr
 	}
 	// Open savefile
-	f, err := os.OpenFile("tablemap.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	f, err := os.Open("tablemap.txt")
 	checkIfErr(err)
 	defer f.Close()
 	// reads each line and checks if it has requested player and stage
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		saveData := strings.Split(scanner.Text(), " ")
+
 		samePlayer := saveData[0] == fmt.Sprintf("Jugador_%d", player)
-		sameStage := saveData[1] == fmt.Sprintf("Ronda:%d", stage)
+		sameStage := saveData[1] == fmt.Sprintf("Ronda_%d", stage)
+
 		if samePlayer && sameStage {
 			return saveData[2], nil
 		}
 	}
-	return "", nil
+	return "", os.ErrNotExist
 }
 
 func Namenode_go() {
@@ -161,4 +169,6 @@ func Namenode_go() {
 		}
 		defer conns[i].Close()
 	}
+
+	RetrievePlayerData(clients[:], 0)
 }
