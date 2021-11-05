@@ -10,29 +10,29 @@ package protogrpc;
 //
 
 service PlayerHistory {
-  rpc GetPlayerHistory (PlayerHistoryRequest) returns (PlayerHistoryReply);
+	rpc GetPlayerHistory (PlayerHistoryRequest) returns (PlayerHistoryReply);
 }
 
 service RoundStatus {
-  rpc SendAllMoves (AllPlayerMovesRequest) returns (AllPlayerMovesReply);
+	rpc SendAllMoves (AllPlayerMovesRequest) returns (AllPlayerMovesReply);
 }
 
 // namenode to leader - player's movement history
 message PlayerHistoryRequest {
-  optional uint32 player_id = 1;
+	optional uint32 player_id = 1;
 }
 
 // leader to namenode - player's movement history
 message PlayerHistoryReply {
-  optional string p_history = 1;
+	optional string p_history = 1;
 }
 
 // leader to namenode || namenode to datanode - send current move for all player's
 message AllPlayerMovesRequest {
-  repeated uint32 player_move = 1 [packed = true];
+	repeated uint32 player_move = 1 [packed = true];
 }
 
 // namenode to leader || datanode to namenode - acknowledge sender's message
 message AllPlayerMovesReply {
-  optional uint32 player_move_ack = 1;
+	optional uint32 player_move_ack = 1;
 }
