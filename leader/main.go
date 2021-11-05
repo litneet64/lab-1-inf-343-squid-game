@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"time"
+	r "math/rand"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
@@ -147,6 +148,18 @@ func RequestPlayerHistory() {
 
 }
 
+func stage1() {
+	var round, number uint32
+	// start game
+	round = 1
+	// while in round
+	for round; round < 5; round++ {
+		number = r.Intn(4) + 6
+		// check if player won/continues to play/ die
+
+		
+	}
+}
 
 
 // main leader function
