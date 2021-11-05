@@ -106,8 +106,6 @@ func Player_go(player_type string) {
 
 	// main game loop
 	for i := 1; ; i++ {
-		fmt.Printf("[Round %v]\n", i)
-
 		switch player_type {
 		case "bot":
 			mov, err = autoMove()
@@ -119,18 +117,8 @@ func Player_go(player_type string) {
 			mov, err = getInput()
 			if err != nil {
 				log.Fatalf("[Error] While reading user input: %v", err)
-				mov, err = autoMove()
 			}
-		default:
-			log.Fatalf("[Error] Wrong usage of Player_go function!\n")
 		}
 
-		// send player move and recieve player status
-		_, err := sendMove(ctx, client, &mov)
-		if err != nil {
-			log.Fatalf("[Error] While sending moves: %v", err)
-		}
-
-		// do something with state
 	}
 }

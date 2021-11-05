@@ -2,20 +2,21 @@ package leader
 
 import (
 	"context"
+	"fmt"
 	"log"
+	r "math/rand"
 	"net"
 	"time"
-	r "math/rand"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
 )
 
 const (
-	bindAddr = "0.0.0.0:50051"
-	poolAddr = "dist183:50051"
+	bindAddr     = "0.0.0.0:50051"
+	poolAddr     = "dist183:50051"
 	namenodeAddr = "dist182:50051"
-	playerNum = 16
+	playerNum    = 16
 )
 
 // should work as struct
@@ -23,67 +24,63 @@ type PlayerState struct {
 	Dead, Alive, NotPlaying uint32
 }
 
-
 // holds required data for a succesful grpc preamble dial
 type GrpcData struct {
-	ctx *context.Context,
-	conn *grpc.ClientConn,
-	client *DataRegistryServiceClient,
+	ctx    *context.Context
+	conn   *grpc.ClientConn
+	client *DataRegistryServiceClient
 	cancel *grpc.DialOption
 }
-
 
 var (
 	// PlayerState "enum"
 	playerState = PlayerState{
-		Dead: 0,
-		Alive: 1,
-		NotPlaying: 2
+		Dead:       0,
+		Alive:      1,
+		NotPlaying: 2,
 	}
 )
 
 // all player's data
 type GameData struct {
-	pid_list [playerNum]uint32 				// list of player's id
-	pid_curr_state [playerNum]uint32 	// list of the most current player's state (dead, alive, not playing)
-	p_len uint32											// num of players in the current game
-	level uint32											// current level
+	pid_list       [playerNum]uint32 // list of player's id
+	pid_curr_state [playerNum]uint32 // list of the most current player's state (dead, alive, not playing)
+	p_len          uint32            // num of players in the current game
+	level          uint32            // current level
 }
 
 // global player data
 var gamedata = GameData{level: 1}
 
-
 type server struct {
 	pb.UnimplementedGameInteractionServer
 }
-
 
 // handle player's request
 func (s *server) PlayerSend(ctx context.Context, in *pb.PlayerToLeaderRequest) (*pb.PlayerToLeaderReply, error) {
 	var reply *pb.PlayerToLeaderReply
 
 	switch in.GetMsg() {
-		case 0: // player sent movement, store in namenode
-			// TODO: HANDLE LEVEL SPECIFIC LOGIC (USE MUTEXES IF GAMEDATA IS TO BE MODIFIED)
-			// TODO: COMMUNICATE RESULTS TO POOL
-		case 1: // player sent join_game request
-			if gamedata.p_len != playerNum || gamedata.level != 1 {
-				reply = &pb.PlayerToLeaderReply{Msg: pb.PlayerToLeaderReply_DENY_JOIN.Enum()}
+	case 0: // player sent movement, store in namenode
+		// TODO: HANDLE LEVEL SPECIFIC LOGIC (USE MUTEXES IF GAMEDATA IS TO BE MODIFIED)
+		// TODO: COMMUNICATE RESULTS TO POOL
+	case 1: // player sent join_game request
+		if gamedata.p_len != playerNum || gamedata.level != 1 {
+			reply = &pb.PlayerToLeaderReply{Msg: pb.PlayerToLeaderReply_DENY_JOIN.Enum()}
 
-			} else {
-				// get player index in list, update state and increase index
-				p_idx := gamedata.p_len
-				gamedata.pid_list[p_idx] = in.GetPlayerId()
-				gamedata.pid_state[p_idx] = playerstate.Alive
-				gamedata.p_len++
-				reply = &pb.PlayerToLeaderReply{Msg: pb.PlayerToLeaderReply_ACCEPT_JOIN.Enum()}
-			}
-		default:
-			log.Fatalf("[Leader] Recieved wrong type of msg (%v) from player: %v",
-					in.GetMsg(),
-					in.GetPlayerId(),
-				)
+		} else {
+			// get player index in list, update state and increase index
+			p_idx := gamedata.p_len
+			gamedata.pid_list[p_idx] = in.GetPlayerId()
+			gamedata.pid_state[p_idx] = playerstate.Alive
+			gamedata.p_len++
+			reply = &pb.PlayerToLeaderReply{Msg: pb.PlayerToLeaderReply_ACCEPT_JOIN.Enum()}
+		}
+	default:
+		log.Fatalf("[Leader] Recieved wrong type of msg (%v) from player: %v",
+			in.GetMsg(),
+			in.GetPlayerId(),
+		)
 	}
 
 	log.Printf("Received: %v", in.GetMsg())
@@ -91,12 +88,11 @@ func (s *server) PlayerSend(ctx context.Context, in *pb.PlayerToLeaderRequest) (
 	return reply, nil
 }
 
-
 // request current accumulated prize to pool node
 func RequestPrize(ctx context.Context, client pb.PrizeClient, prize *uint32) uint32 {
-	response, err := client.GetPrize(ctz,
-		&pb.CurrentPoolRequest{prize: prize},
-	})
+	response, err := client.GetPrize(ctx,
+		&pb.CurrentPoolRequest{Prize: prize},
+	)
 
 	if err != nil {
 		log.Fatalf("[Leader] Couldn't communicate with Pool: %v", err)
@@ -109,7 +105,7 @@ func RequestPrize(ctx context.Context, client pb.PrizeClient, prize *uint32) uin
 }
 
 // call grpc preamble
-func SetupDial(addr string, grpcdata *GrpcData) (error) {
+func SetupDial(addr string, grpcdata *GrpcData) error {
 	connection, err := grpc.Dial(addr, grpc.WithInsecure())
 	grpcdata.conn = connection
 
@@ -124,7 +120,6 @@ func SetupDial(addr string, grpcdata *GrpcData) (error) {
 
 	return err
 }
-
 
 // main server for player functionality
 func LeaderToPlayerServer() {
@@ -142,32 +137,38 @@ func LeaderToPlayerServer() {
 	}
 }
 
-
 // request player history from namenode
 func RequestPlayerHistory() {
 
 }
 
-func stage1() {
+func Stage1() {
 	var round, number uint32
+
 	// start game
 	round = 1
+
 	// while in round
 	for round; round < 5; round++ {
+		// valor entre 6 y 10
 		number = r.Intn(4) + 6
-		// check if player won/continues to play/ die
 
-		
+		// check if player won, continues to play or dies
+
 	}
 }
-
 
 // main leader function
 func Leader_go() {
 	// map with struct that saves basic grpc dial data
-	var grpcmap = map[string]GrpcData {
+	var grpcmap = map[string]GrpcData{
 		"namenode": GrpcData{},
-		"pool": GrpcData{},
+		"pool":     GrpcData{},
+	}
+
+	// Loop over all players to save grpc data
+	for i := 0; i < 16; i++ {
+		grpcmap[fmt.Sprintf("player_%d", i)] = GrpcData{}
 	}
 
 	log.Println("[Leader] Starting Squid Game...")
