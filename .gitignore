@@ -13,3 +13,7 @@
 
 # Generated protobuf files
 *.pb.go
+
+# Misc
+*.txt
+squid-bin
