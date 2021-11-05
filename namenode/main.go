@@ -32,9 +32,9 @@ var (
 	}
 )
 
-func checkIfErr(e error) {
-	if e != nil {
-		log.Fatal(e)
+func failOnError(err error, msg string) {
+	if err != nil {
+		log.Fatalf("[Error]: (%v) %s", err, msg)
 	}
 }
 
@@ -108,7 +108,7 @@ func RetrievePlayerData(clients []Client, player uint32) {
 func SaveMoveLocations(player uint32, stage uint32, address string) {
 
 	f, err := os.OpenFile("tablemap.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-	checkIfErr(err)
+	failOnError(err, "can't open file \"tablemap.txt\"")
 	defer f.Close()
 
 	locationtemplate := "Jugador_%d Ronda_%d %v\n"
@@ -124,10 +124,12 @@ func GetMoveLocations(player uint32, stage uint32) (string, error) {
 	if fErr != nil {
 		return "", fErr
 	}
+
 	// Open savefile
 	f, err := os.Open("tablemap.txt")
-	checkIfErr(err)
+	failOnError(err, "can't open file \"tablemap.txt\"")
 	defer f.Close()
+
 	// reads each line and checks if it has requested player and stage
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
