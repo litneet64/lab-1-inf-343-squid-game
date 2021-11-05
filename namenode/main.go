@@ -47,7 +47,7 @@ func Register(client pb.DataRegistryServiceClient, stage uint32, round uint32, r
 		})
 }
 
-// Recieve round info from datanode
+// Receive round info from datanode
 func Retrieve() {
 
 }
@@ -69,5 +69,13 @@ func Namenode_go() {
 		clients[i] = pb.NewDataRegistryServiceClient(conns[i])
 		defer conns[i].Close()
 	}
+
+	rounds := []RoundInfo{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+	}
+	// Test client 0, stage 0, round 0, etc.
+	Register(clients[0], 0, 0, rounds)
 
 }
