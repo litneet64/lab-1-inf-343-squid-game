@@ -10,7 +10,7 @@ package protogrpc;
 
 service GameInteraction {
   // Player asks Leader to join the game
-  rpc PlayerSend (PlayerToLeaderRequest) returns (PlayerToLeaderReply);
+  rpc PlayerJoin (JoinGameRequest) returns (JoinGameReply);
 
   // Leader tells Player that round started with state
   rpc RoundStart (RoundState) returns (PlayerAck);
@@ -25,44 +25,36 @@ service GameInteraction {
 
 
 // player to leader - movement || join game
-message PlayerToLeaderRequest {
+message JoinGameRequest {
   optional uint32 player_id = 1;
-  enum msgType {
-    MOVE = 0;
-    JOIN_GAME = 1;
-  }
-  optional msgType msg = 2;
-  optional uint32 moves = 3;
 }
 
 // leader to player - player state || accept join
-message PlayerToLeaderReply {
+message JoinGameReply {
   enum rspType {
-    STATE = 0;
-    ACCEPT_JOIN = 1;
-    DENY_JOIN = 2;
+    ACCEPT_JOIN = 0;
+    DENY_JOIN = 1;
   }
   optional rspType msg = 1;
-  optional uint32 state = 2;
-  optional uint32 playerId = 3;
 }
 
-// -- RoundStart messages
+// -- PlayerAction messages
 message PlayerMove {
-  optional uint32 move = 1;
-
+  optional uint32 player_id = 1;
+  optional uint32 move = 2;
+  optional uint32 stage = 3;
 }
 
 message PlayerState {
   enum state {
     ALIVE = 0;
-    WON = 1;
-    DEAD = 2;
+    DEAD = 1;
+    NOTPLAYING = 2;
   }
   optional state player_state = 1;
   
 }
-// -- PlayerAction messages:
+// -- RoundStart messages:
 
 message RoundState {
   optional uint32 stage = 1;
@@ -80,6 +72,6 @@ message PlayerCommand {
 }
 
 message CommandReply {
-  optional string reply = 1;
+  optional uint32 reply = 1;
 }
 
