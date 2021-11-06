@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -21,18 +22,29 @@ type RoundInfo struct {
 type Client struct {
 	id     uint32
 	addr   string
-	client pb.DataRegistryServiceClient
+	client *pb.DataRegistryServiceClient
+	conn   *grpc.ClientConn
+	ctx    *context.Context
 }
+
+type server struct {
+	pb.UnimplementedDataRegistryServiceServer
+}
+
+const (
+	bindAddr = "0.0.0.0:50051"
+)
 
 var (
 	datanodeAddr = [3]string{
-		"localhost:50051",
-		"localhost:50052",
-		"localhost:50053",
+		"0.0.0.0:50051",
+		"0.0.0.0:50052",
+		"0.0.0.0:50053",
 	}
+	clients = [3]Client{}
 )
 
-func failOnError(err error, msg string) {
+func FailOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("[Error]: (%v) %s", err, msg)
 	}
@@ -63,9 +75,21 @@ func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage uint32, round
 		})
 }
 
+// Recieve player history request from leader
+func (s *server) GetPlayerHistory(ctx context.Context, in *pb.PlayerHistoryRequest) (*pb.StageData, error) {
+	// send player
+	playerId := in.GetPlayerId()
+	playerMoves := RetrievePlayerData(playerId)
+
+	reply := &pb.StageData{PlayerMoves: playerMoves}
+
+	return reply, nil
+}
+
 // Recieves all the moves that a player has made.
-func RetrievePlayerData(clients []Client, player uint32) {
+func RetrievePlayerData(player uint32) []uint32 {
 	var requestQueue []*Client
+	var playerMoves []uint32
 
 	// Map each address to the corresponding client object
 	addrToClient := make(map[string]*Client, 3)
@@ -87,28 +111,32 @@ func RetrievePlayerData(clients []Client, player uint32) {
 	}
 
 	// Start timed context
-	_, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	/* 	for i := 0; i < len(requestQueue); i++ {
+	for i := 0; i < len(requestQueue); i++ {
 		stage := uint32(i)
 
 		// Request to datanode and parse output
-		data, _ := requestQueue[i].client.RequestPlayerData(ctx,
+		dataResp, _ := (*requestQueue[i].client).RequestPlayerData(ctx,
 			&pb.DataRequestParams{
 				PlayerId: &player,
 				Stage:    &stage,
 			})
 
 		// 'data' should be sent to leader
-	} */
+		data := dataResp.GetPlayerMoves()
+		playerMoves = append(playerMoves, data...)
+	}
+
+	return playerMoves
 }
 
 // Saves node locations of player moves for each stage
 func SaveMoveLocations(player uint32, stage uint32, address string) {
 
 	f, err := os.OpenFile("tablemap.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-	failOnError(err, "can't open file \"tablemap.txt\"")
+	FailOnError(err, "can't open file \"tablemap.txt\"")
 	defer f.Close()
 
 	locationtemplate := "Jugador_%d Ronda_%d %v\n"
@@ -127,7 +155,7 @@ func GetMoveLocations(player uint32, stage uint32) (string, error) {
 
 	// Open savefile
 	f, err := os.Open("tablemap.txt")
-	failOnError(err, "can't open file \"tablemap.txt\"")
+	FailOnError(err, "can't open file \"tablemap.txt\"")
 	defer f.Close()
 
 	// reads each line and checks if it has requested player and stage
@@ -151,22 +179,34 @@ func Namenode_go() {
 
 	var conns [3]*grpc.ClientConn
 	var errs [3]error
-	var clients [3]Client
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
 	// Dial each datanode
 	for i := 0; i < 3; i++ {
 		conns[i], errs[i] = grpc.Dial(datanodeAddr[i], grpc.WithInsecure())
-		if errs[i] != nil {
-			log.Fatalf("[Namenode] Error connecting to datanode #%d: \"%v\"", i, errs[i])
+		FailOnError(errs[i], fmt.Sprintf("[Namenode] Error connecting to datanode #%d: \"%v\"", i, errs[i]))
+
+		client := pb.NewDataRegistryServiceClient(conns[i])
+		clients[i] = Client{
+			id:     uint32(i),
+			addr:   datanodeAddr[i],
+			client: &client,
+			conn:   conns[i],
+			ctx:    &ctx,
 		}
 
-		clients[i] = Client{
-			uint32(i),
-			datanodeAddr[i],
-			pb.NewDataRegistryServiceClient(conns[i]),
-		}
 		defer conns[i].Close()
 	}
 
-	RetrievePlayerData(clients[:], 0)
+	lis, err := net.Listen("tcp", bindAddr)
+	FailOnError(err, "[Namenode] failed to listen on address")
+
+	namenode_srv := grpc.NewServer()
+	pb.RegisterDataRegistryServiceServer(namenode_srv, &server{})
+	log.Printf("[Namenode] Listening at %v", lis.Addr())
+
+	if err := namenode_srv.Serve(lis); err != nil {
+		log.Fatalf("[Namenode] Could not bind to %v : %v", bindAddr, err)
+	}
 }
