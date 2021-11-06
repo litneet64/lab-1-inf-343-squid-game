@@ -2,63 +2,60 @@ name: deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy-to-hosts:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.17
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
 
-    - name: Set up protobuf + gRPC
-      run: |
-        curl -LO $PB_URL/$PROTO_VER/$ZIP_NAME
-        unzip $ZIP_NAME -d $HOME/.local
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
-        echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Set up protobuf + gRPC
+        run: |
+          curl -LO $PB_URL/$PROTO_VER/$ZIP_NAME
+          unzip $ZIP_NAME -d $HOME/.local
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
-      env:
-        PB_URL: "https://github.com/protocolbuffers/protobuf/releases/download"
-        PROTO_VER: "v3.19.0"
-        ZIP_NAME: "protoc-3.19.0-linux-x86_64.zip"
+        env:
+          PB_URL: "https://github.com/protocolbuffers/protobuf/releases/download"
+          PROTO_VER: "v3.19.0"
+          ZIP_NAME: "protoc-3.19.0-linux-x86_64.zip"
 
-    - name: Compile protobufs
-      run: |
-        protoc --go_out=. --go_opt=paths=source_relative \
-        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-        $(find ./ -name "*.proto")
+      - name: Compile protobufs
+        run: |
+          protoc --go_out=. --go_opt=paths=source_relative \
+          --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+          $(find ./ -name "*.proto")
 
-    - name: Build Project
-      run: go build -o ./squid-bin -v ./*.go
+      - name: Build Project
+        run: go build -o ./squid-bin -v ./*.go
 
-    - name: Deploy
-      uses: dawidd6/action-ansible-playbook@v2.5.0
-      with:
-        playbook: ./ansible/deploy.yml
-        key: ${{ secrets.ANSIBLE_KEY }}
-        inventory: |
-          [datanodes]
-          dist181
-          dist183
-          dist184
-          [leaders]
-          dist181
-          [players]
-          dist181
-          dist182
-          dist183
-          dist184
-          [namenodes]
-          dist182
-          [pool]
-          dist183
-          [all:vars]
-          ansible_ssh_common_args="-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i ./.ansible_key -W %h:%p ${{ secrets.BASTION_HOST }} -p ${{ secrets.BASTION_PORT }}'"
-          ansible_user="${{ secrets.SSH_USER }}"
+      - name: Deploy
+        uses: dawidd6/action-ansible-playbook@v2.5.0
+        with:
+          playbook: ./ansible/deploy.yml
+          key: ${{ secrets.ANSIBLE_KEY }}
+          inventory: |
+            [datanodes]
+            dist181
+            dist183
+            dist184
+            [leaders]
+            dist181
+            [players]
+            dist181
+            [namenodes]
+            dist182
+            [pool]
+            dist183
+            [all:vars]
+            ansible_ssh_common_args="-o ProxyCommand='ssh -o StrictHostKeyChecking=no -i ./.ansible_key -W %h:%p ${{ secrets.BASTION_HOST }} -p ${{ secrets.BASTION_PORT }}'"
+            ansible_user="${{ secrets.SSH_USER }}"

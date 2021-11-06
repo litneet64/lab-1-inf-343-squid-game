@@ -11,6 +11,11 @@ import (
 	"github.com/litneet64/lab-2-squid-game/pool"
 )
 
+const (
+	playerId  = 0
+	playerNum = 16
+)
+
 func show_help() {
 	log.Fatalf("[!] Usage: %s <role [leader/player_bot/player/namenode/datanode/pool]>", os.Args[0])
 }
@@ -23,10 +28,13 @@ func main() {
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
 		leader.Leader_go()
-	case "player_bot":
-		player.Player_go("bot")
 	case "player":
-		player.Player_go("human")
+		player.Player_go("human", playerId)
+
+		// Instantiate other 15 players
+		for id := 1; id < playerNum; id++ {
+			go player.Player_go("bot", uint32(id))
+		}
 	case "namenode":
 		namenode.Namenode_go()
 	case "datanode":

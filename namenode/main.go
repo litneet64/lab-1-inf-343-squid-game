@@ -32,16 +32,17 @@ type server struct {
 }
 
 const (
-	bindAddr = "0.0.0.0:50051"
+	bindAddrEnv  = "NAMENODE_BIND_ADDR"
+	dataAddrEnv1 = "DATANODE_ADDR_1"
+	dataAddrEnv2 = "DATANODE_ADDR_2"
+	dataAddrEnv3 = "DATANODE_ADDR_3"
 )
 
 var (
-	datanodeAddr = [3]string{
-		"0.0.0.0:50051",
-		"0.0.0.0:50052",
-		"0.0.0.0:50053",
-	}
-	clients = [3]Client{}
+	datanodeAddr                    = [3]string{}
+	clients                         = [3]Client{}
+	bindAddr                        string
+	dataAddr1, dataAddr2, dataAddr3 string
 )
 
 func FailOnError(err error, msg string) {
@@ -174,6 +175,11 @@ func GetMoveLocations(player uint32, stage uint32) (string, error) {
 }
 
 func Namenode_go() {
+	bindAddr = os.Getenv(bindAddrEnv)
+	dataAddr1 = os.Getenv(dataAddrEnv1)
+	dataAddr2 = os.Getenv(dataAddrEnv2)
+	dataAddr3 = os.Getenv(dataAddrEnv3)
+
 	// Define arrays of both connections and errors for each of the
 	// three datanodes that are connected to the namenode
 

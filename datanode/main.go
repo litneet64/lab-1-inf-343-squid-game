@@ -22,7 +22,13 @@ type server struct {
 	pb.UnimplementedDataRegistryServiceServer
 }
 
-const namenodeAddr string = "localhost:50051"
+const (
+	bindAddrEnv = "DATANODE_BIND_ADDR"
+)
+
+var (
+	bindAddr string
+)
 
 func FailOnError(err error, msg string) {
 	if err != nil {
@@ -98,8 +104,10 @@ func (s *server) RequestPlayerData(ctx context.Context, in *pb.DataRequestParams
 }
 
 func Datanode_go() {
+	bindAddr = os.Getenv(bindAddrEnv)
+
 	// Set the listening port for the server
-	lis, err := net.Listen("tcp", namenodeAddr)
+	lis, err := net.Listen("tcp", bindAddr)
 	if err != nil {
 		log.Fatalf("[Datanode] Could not listen: %v", err)
 	}

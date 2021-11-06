@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"strings"
 	"time"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
@@ -13,8 +15,11 @@ import (
 )
 
 const (
-	bindAddr  = "0.0.0.0:50051"
-	playerNum = 16
+	bindAddrEnv     = "LEADER_BIND_ADDR"
+	playerAddrEnv   = "PLAYER_ADDR"
+	poolAddrEnv     = "POOL_ADDR"
+	namenodeAddrEnv = "NAMENODE_ADDR"
+	playerNum       = 16
 )
 
 // should work as struct
@@ -58,28 +63,14 @@ var (
 		Dead:       0,
 		Alive:      1,
 		NotPlaying: 2,
-	} // what this, please respond
+	}
+
+	bindAddr string
 
 	// Addresses list map
 	addrListMap = map[string]string{
-		"pool":      "dist183:50051",
-		"namenode":  "dist182:50051",
-		"player_0":  "dist184:50051",
-		"player_1":  "dist184:50052",
-		"player_2":  "dist184:50053",
-		"player_3":  "dist184:50054",
-		"player_4":  "dist184:50055",
-		"player_5":  "dist184:50056",
-		"player_6":  "dist184:50057",
-		"player_7":  "dist184:50058",
-		"player_8":  "dist184:50059",
-		"player_9":  "dist184:50060",
-		"player_10": "dist184:50061",
-		"player_11": "dist184:50062",
-		"player_12": "dist184:50063",
-		"player_13": "dist184:50064",
-		"player_14": "dist184:50065",
-		"player_15": "dist184:50066",
+		"pool":     os.Getenv(poolAddrEnv),
+		"namenode": os.Getenv(namenodeAddrEnv),
 	}
 
 	// global player data
@@ -294,6 +285,8 @@ func GetLivingPlayers() (players []Player) {
 // main leader function
 func Leader_go() {
 
+	bindAddr = os.Getenv(bindAddrEnv)
+
 	// -- Communication setup with Pool
 	RabbitMqSetup()
 
@@ -307,6 +300,8 @@ func Leader_go() {
 
 	// Loop over all players to save grpc data
 	for i := 0; i < 16; i++ {
+		tmpAddr := strings.Join([]string{os.Getenv(playerAddrEnv), "%02d"}, "")
+		addrListMap[fmt.Sprintf("player_%d", i)] = fmt.Sprintf(tmpAddr, i)
 		grpcmap[fmt.Sprintf("player_%d", i)] = GrpcData{}
 	}
 

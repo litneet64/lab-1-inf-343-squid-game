@@ -16,8 +16,12 @@ import (
 )
 
 const (
-	leaderAddr = "localhost:50051"
-	leaderGrpc = "localhost:50052"
+	leaderRabbitEnv = "LEADER_RABBIT_ADDR"
+	bindAddrEnv     = "POOL_BIND_ADDR"
+)
+
+var (
+	bindAddr, leaderRabbitAddr string
 )
 
 type server struct {
@@ -86,7 +90,7 @@ func RetrievePrice() (prize uint32) {
 }
 
 func setupPoolServer() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(leaderGrpc))
+	lis, err := net.Listen("tcp", bindAddr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -105,10 +109,14 @@ func (s *server) GetPrize(ct context.Context, in *pb.CurrentPoolRequest) (*pb.Cu
 }
 
 func Pool_go() {
+
+	bindAddr = os.Getenv(bindAddrEnv)
+	leaderRabbitAddr = os.Getenv(leaderRabbitEnv)
+
 	// grpc conection
 	go setupPoolServer()
 	// Dial Leader
-	conn, err := amqp.Dial(leaderAddr)
+	conn, err := amqp.Dial(leaderRabbitAddr)
 	FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 

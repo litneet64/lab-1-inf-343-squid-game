@@ -3,11 +3,13 @@ package player
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
@@ -15,8 +17,8 @@ import (
 )
 
 const (
-	address     = "localhost:50051" // Cambiar despues
-	defaultName = "leader"          // También
+	leaderAddrEnv = "LEADER_ADDR"
+	bindAddrEnv   = "PLAYER_BIND_ADDR"
 )
 
 type server struct {
@@ -31,7 +33,8 @@ type GameData struct {
 }
 
 var (
-	gamedata = GameData{}
+	bindAddr, leaderAddr string
+	gamedata             = GameData{}
 )
 
 // Send the player's chosen move to Leader
@@ -146,7 +149,7 @@ func AutoMove(stage uint32) (number uint32, err error) {
 func SetupPlayerServer(playerId uint32) {
 	// Listening server
 
-	lis, err := net.Listen("tcp", address) // cambiar address
+	lis, err := net.Listen("tcp", bindAddr) // cambiar address
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -156,17 +159,21 @@ func SetupPlayerServer(playerId uint32) {
 	log.Printf("[player %d] Listening at %v", playerId, lis.Addr())
 
 	if err := player_srv.Serve(lis); err != nil {
-		log.Fatalf("[player %d] Could not bind to %v : %v", playerId, address, err)
+		log.Fatalf("[player %d] Could not bind to %v : %v", playerId, bindAddr, err)
 	}
 }
 
-func Player_go(playerType string) {
+func Player_go(playerType string, playerId uint32) {
 	gamedata.playerType = playerType
+
+	leaderAddr = os.Getenv(leaderAddrEnv)
+	tmpAddr := strings.Join([]string{os.Getenv(bindAddrEnv), "%02d"}, "")
+	bindAddr = fmt.Sprintf(tmpAddr, playerId)
 
 	log.Println("Started New Game")
 	log.Println("Timeout for moves between every round is 10 [s]")
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(leaderAddr, grpc.WithInsecure())
 
 	if err != nil {
 		log.Fatalf("[Error] Couldn't connect to target: %v", err)
@@ -181,16 +188,15 @@ func Player_go(playerType string) {
 	defer cancel()
 
 	// request to join game
-	p_id := uint32(rand.Intn(2<<32 - 1))
-	gamedata.playerId = p_id
+	gamedata.playerId = playerId
 	_, err = client.PlayerJoin(ctx,
 		&pb.JoinGameRequest{
-			PlayerId: &p_id,
+			PlayerId: &playerId,
 		})
 
 	if err != nil {
 		log.Fatalf("[Error] Couldn't connect to leader\n")
 	}
 
-	go SetupPlayerServer(p_id)
+	SetupPlayerServer(playerId)
 }
