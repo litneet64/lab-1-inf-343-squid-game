@@ -360,7 +360,7 @@ func Leader_go() {
 	// End of game
 	finalPlayers := GetLivingPlayers()
 	if len(finalPlayers) > 0 {
-		log.Printf("> Los ganadore son������🥵: %v ", finalPlayers)
+		log.Printf("> Los ganadores del juego del calamar son 🦑: %v ", finalPlayers)
 	} else {
 		log.Printf("> Ningún jugador ganó 🥺")
 	}
