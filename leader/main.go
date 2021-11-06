@@ -33,6 +33,7 @@ type GrpcData struct {
 	conn         *grpc.ClientConn
 	clientData   *pb.DataRegistryServiceClient
 	clientPlayer *pb.GameInteractionClient
+	clientPrize  *pb.PrizeClient
 	cancel       *context.CancelFunc
 }
 
@@ -77,6 +78,12 @@ var (
 	gamedata = GameData{stage: 0, round: 0, stage_len: []uint32{4, 1, 1}}
 
 	rabbitMqData = RabbitMqData{}
+
+	// Map with struct that saves basic grpc dial data
+	grpcmap = map[string]GrpcData{
+		"namenode": {},
+		"pool":     {},
+	}
 )
 
 type server struct {
@@ -132,18 +139,26 @@ func (s *server) PlayerJoin(ctx context.Context, in *pb.JoinGameRequest) (*pb.Jo
 func (s *server) RequestCommand(ctx context.Context, in *pb.PlayerCommand) (*pb.CommandReply, error) {
 	var reply *pb.CommandReply
 
+	playerId := in.GetPlayerId()
+
 	switch in.GetCommand() {
 	case pb.PlayerCommand_POOL:
+		// Re send round start to player
+		playerClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPlayer)
+		defer playerClient.RoundStart(ctx, in.GetRoundState())
 
+		prizeClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPrize)
+		prize := RequestPrize(ctx, prizeClient)
+		return &pb.CommandReply{Reply: &prize}, nil
 	}
 
 	return reply, nil
 }
 
 // request current accumulated prize to pool node
-func RequestPrize(ctx context.Context, client pb.PrizeClient, prize *uint32) uint32 {
+func RequestPrize(ctx context.Context, client pb.PrizeClient) uint32 {
 	response, err := client.GetPrize(ctx,
-		&pb.CurrentPoolRequest{Prize: prize},
+		&pb.CurrentPoolRequest{},
 	)
 	FailOnError(err, "[Leader] Couldn't communicate with Pool")
 
@@ -159,7 +174,7 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) error {
 	grpcdata.conn = connection
 
 	if err != nil {
-		log.Fatalf("[Error] Couldn't connect to target: %v", err)
+		log.Fatalf("[Leader] Couldn't connect to target: %v", err)
 	} else {
 		log.Println("Connection was successful")
 	}
@@ -292,12 +307,6 @@ func Leader_go() {
 
 	// -- Main gRPC setup
 
-	// Map with struct that saves basic grpc dial data
-	var grpcmap = map[string]GrpcData{
-		"namenode": {},
-		"pool":     {},
-	}
-
 	// Loop over all players to save grpc data
 	for i := 0; i < 16; i++ {
 		tmpAddr := strings.Join([]string{os.Getenv(playerAddrEnv), "%02d"}, "")
@@ -331,10 +340,11 @@ func Leader_go() {
 	for ; *stage < 3; (*stage)++ {
 		log.Printf("[Level %v] Started...\n", stage)
 
-		currPlayers := GetLivingPlayers()
-
 		// For each round, tell all (alive) players that the round started
 		for ; *round < gamedata.stage_len[*stage]; (*round)++ {
+
+			currPlayers := GetLivingPlayers()
+
 			for i := 0; i < len(currPlayers); i++ {
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
 
@@ -346,4 +356,13 @@ func Leader_go() {
 			}
 		}
 	}
+
+	// End of game
+	finalPlayers := GetLivingPlayers()
+	if len(finalPlayers) > 0 {
+		log.Printf("> Los ganadores del juego del calamar son 🦑: %v ", finalPlayers)
+	} else {
+		log.Printf("> Ningún jugador ganó 🥺")
+	}
+
 }

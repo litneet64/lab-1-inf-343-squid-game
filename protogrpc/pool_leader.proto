@@ -14,7 +14,6 @@ service Prize {
 
 // leader to pool - get current accumulated prize
 message CurrentPoolRequest {
-  optional uint32 prize = 1;
 }
 
 // pool to leader - sends current accum prize
