@@ -32,6 +32,12 @@ type GameData struct {
 	state      pb.PlayerStateState
 }
 
+type PlayerMove struct {
+	optNumber  uint32
+	optCommand pb.PlayerCommandCommandType
+	isNumber   bool
+}
+
 var (
 	bindAddr, leaderAddr string
 	gamedata             = GameData{}
@@ -55,6 +61,24 @@ func SendPlayerMove(ctx context.Context, client pb.GameInteractionClient, move *
 	return
 }
 
+// Send the player's chosen move to Leader
+func SendPlayerCommand(ctx context.Context, client pb.GameInteractionClient, command *pb.PlayerCommandCommandType) {
+	response, err := client.RequestCommand(ctx,
+		&pb.PlayerCommand{
+			PlayerId: &gamedata.playerId,
+			Command:  command,
+		})
+	if err != nil {
+		log.Fatalf("[Player] Could not send message to server: %v", err)
+	}
+
+	switch command {
+	case pb.PlayerCommand_POOL.Enum():
+		log.Printf("La cantidad de dinero en el pozo es de: %v", response.GetReply())
+
+	}
+}
+
 // Recieve round start info
 func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.PlayerAck, err error) {
 	stage := in.GetStage()
@@ -70,7 +94,7 @@ func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.Pla
 // the Leader, and process the Leader's response with the Player state
 func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
 
-	var move uint32
+	var move PlayerMove
 	var err error
 
 	switch gamedata.playerType {
@@ -88,27 +112,33 @@ func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
 	}
 
 	// Send selected number to server (Leader)
-	roundResult, err := SendPlayerMove(ctx, gamedata.client, &move)
-	gamedata.state = roundResult
+	if move.isNumber {
+		roundResult, _ := SendPlayerMove(ctx, gamedata.client, &move.optNumber)
+		gamedata.state = roundResult
 
-	// If the player died, then kill the current process
-	if roundResult == pb.PlayerState_DEAD {
-		log.Fatalf("Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+		// If the player died, then kill the current process
+		if roundResult == pb.PlayerState_DEAD {
+			log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+		}
+	} else {
+		SendPlayerCommand(ctx, gamedata.client, pb.PlayerCommand_POOL.Enum())
+
 	}
 }
 
 // user movement function
-func GetUserInput(stage uint32) (number uint32, err error) {
+func GetUserInput(stage uint32) (move PlayerMove, err error) {
 
 	// If it's the second stage, then the range is limited to
 	// a range of [1, 4]
 	if stage == 1 {
-		log.Printf("> Ingrese número del 1 al 4 (inclusive): ")
+		log.Printf("> Ingrese número del 1 al 4 (inclusive) ")
 
 	} else {
 		// Otherwise, the range is from [1, 10]
-		log.Printf("> Ingrese número del 1 al 10 (inclusive): ")
+		log.Printf("> Ingrese número del 1 al 10 (inclusive) ")
 	}
+	log.Printf("o ingrese \"pozo\" para ver la cantidad de dinero actual: ")
 
 	// Get user input
 	reader := bufio.NewReader(os.Stdin)
@@ -121,17 +151,21 @@ func GetUserInput(stage uint32) (number uint32, err error) {
 	// Convert string into an int
 	i_number, err := strconv.Atoi(userInput)
 	if err != nil {
-		log.Println("[Error] Can only parse integers!")
-		return
+		if userInput == "pozo" {
+			return PlayerMove{optCommand: pb.PlayerCommand_POOL}, nil
+
+		} else {
+			log.Println("> No se pudo interpretar bien el input.")
+			return GetUserInput(stage)
+		}
 	}
 
-	number = uint32(i_number)
-
-	return
+	return PlayerMove{optNumber: uint32(i_number), isNumber: true}, nil
 }
 
 // bot movement generator
-func AutoMove(stage uint32) (number uint32, err error) {
+func AutoMove(stage uint32) (move PlayerMove, err error) {
+	var number uint32
 
 	// If it's the second stage, then the range is limited to
 	// a range of [1, 4]
@@ -143,7 +177,7 @@ func AutoMove(stage uint32) (number uint32, err error) {
 		number = uint32(rand.Intn(10) + 1)
 	}
 
-	return
+	return PlayerMove{optNumber: number, isNumber: true}, nil
 }
 
 func SetupPlayerServer(playerId uint32) {
@@ -177,8 +211,6 @@ func Player_go(playerType string, playerId uint32) {
 
 	if err != nil {
 		log.Fatalf("[Error] Couldn't connect to target: %v", err)
-	} else {
-		log.Println("Connection to leader was successful")
 	}
 	defer conn.Close()
 

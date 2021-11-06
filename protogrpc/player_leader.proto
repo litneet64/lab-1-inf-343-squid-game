@@ -68,7 +68,9 @@ message PlayerCommand {
   enum commandType {
     POOL = 0;
   }
-  optional commandType command = 1;
+  optional uint32 player_id = 1;
+  optional commandType command = 2;
+  optional RoundState roundState = 3;
 }
 
 message CommandReply {
