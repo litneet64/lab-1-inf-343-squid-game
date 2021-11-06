@@ -24,7 +24,7 @@ type server struct {
 
 const namenodeAddr string = "localhost:50051"
 
-func failOnError(err error, msg string) {
+func FailOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("[Error]: (%v) %s", err, msg)
 	}
@@ -39,7 +39,7 @@ func writeToFile(player uint32, stage uint32, move uint32) {
 
 	// Create if it doesn't exist, otherwise just open it
 	f, err = os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-	failOnError(err, fmt.Sprintf("can't open file \"%s\"", filename))
+	FailOnError(err, fmt.Sprintf("can't open file \"%s\"", filename))
 	defer f.Close()
 
 	// Writes to file
@@ -55,13 +55,13 @@ func GetPlayerStageRounds(player uint32, stage uint32) []uint32 {
 	// Read player file for the given stage
 	filename := fmt.Sprintf("jugador_%d__etapa_%d.txt", player, stage)
 	f, err := os.Open(filename)
-	failOnError(err, fmt.Sprintf("can't open file \"%s\"", filename))
+	FailOnError(err, fmt.Sprintf("can't open file \"%s\"", filename))
 
 	// Start saving each move
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		move, err := strconv.Atoi(scanner.Text())
-		failOnError(err, fmt.Sprintf("can't convert string \"%s\" to int", scanner.Text()))
+		FailOnError(err, fmt.Sprintf("can't convert string \"%s\" to int", scanner.Text()))
 		moves = append(moves, uint32(move))
 	}
 
