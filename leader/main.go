@@ -79,6 +79,42 @@ var (
 	rabbitMqData = RabbitMqData{}
 )
 
+// should work as struct
+type PlayerState struct {
+	Dead, Alive, NotPlaying uint32
+}
+
+
+// holds required data for a succesful grpc preamble dial
+type GrpcData struct {
+	ctx *context.Context,
+	conn *grpc.ClientConn,
+	client *DataRegistryServiceClient,
+	cancel *grpc.DialOption
+}
+
+
+var (
+	// PlayerState "enum"
+	playerState = PlayerState{
+		Dead: 0,
+		Alive: 1,
+		NotPlaying: 2
+	}
+)
+
+// all player's data
+type GameData struct {
+	pid_list [playerNum]uint32 				// list of player's id
+	pid_curr_state [playerNum]uint32 	// list of the most current player's state (dead, alive, not playing)
+	p_len uint32											// num of players in the current game
+	level uint32											// current level
+}
+
+// global player data
+var gamedata = GameData{level: 1}
+
+
 type server struct {
 	pb.UnimplementedGameInteractionServer
 }
@@ -345,6 +381,5 @@ func Leader_go() {
 					})
 			}
 		}
-
 	}
 }
