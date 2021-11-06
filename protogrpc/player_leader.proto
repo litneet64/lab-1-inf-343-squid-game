@@ -9,28 +9,69 @@ package protogrpc;
 //
 
 service GameInteraction {
-  rpc PlayerSend (PlayerToLeaderRequest) returns (PlayerToLeaderReply);
+  // Player asks Leader to join the game
+  rpc PlayerJoin (JoinGameRequest) returns (JoinGameReply);
+
+  // Leader tells Player that round started with state
+  rpc RoundStart (RoundState) returns (PlayerAck);
+
+  // Player tells Leader what move they use, Leader responds with 
+  // it's new state
+  rpc PlayerAction (PlayerMove) returns (PlayerState);
+
+  // Player tells Leader a command (e.g. read pool prize)
+  rpc RequestCommand (PlayerCommand) returns (CommandReply);
 }
 
 
 // player to leader - movement || join game
-message PlayerToLeaderRequest {
+message JoinGameRequest {
   optional uint32 player_id = 1;
-  enum msgType {
-    MOVE = 0;
-    JOIN_GAME = 1;
-  }
-  optional msgType msg = 2;
-  optional uint32 moves = 3;
 }
 
 // leader to player - player state || accept join
-message PlayerToLeaderReply {
+message JoinGameReply {
   enum rspType {
-    STATE = 0;
-    ACCEPT_JOIN = 1;
-    DENY_JOIN = 2;
+    ACCEPT_JOIN = 0;
+    DENY_JOIN = 1;
   }
   optional rspType msg = 1;
-  optional uint32 state = 2;
 }
+
+// -- PlayerAction messages
+message PlayerMove {
+  optional uint32 player_id = 1;
+  optional uint32 move = 2;
+  optional uint32 stage = 3;
+}
+
+message PlayerState {
+  enum state {
+    ALIVE = 0;
+    DEAD = 1;
+    NOTPLAYING = 2;
+  }
+  optional state player_state = 1;
+  
+}
+// -- RoundStart messages:
+
+message RoundState {
+  optional uint32 stage = 1;
+  optional uint32 round = 2;
+}
+
+message PlayerAck {}
+
+// -- RequestCommand messages
+message PlayerCommand {
+  enum commandType {
+    POOL = 0;
+  }
+  optional commandType command = 1;
+}
+
+message CommandReply {
+  optional uint32 reply = 1;
+}
+
