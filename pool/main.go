@@ -34,8 +34,6 @@ func FailOnError(err error, msg string) {
 	}
 }
 
-func Send()
-
 // writes last player death and new pool prize
 func RegisterPlayerDeath(player uint32, stage uint32) {
 	var f *os.File
