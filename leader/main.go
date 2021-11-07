@@ -164,7 +164,8 @@ var (
 		"pool":     {},
 	}
 
-	stage2PlayerGroups [2]PlayerGroup
+	stage1Players      uint32         // Count how many players have done their move
+	stage2PlayerGroups [2]PlayerGroup //
 	stage3PlayerGroups []PlayerGroup
 )
 
@@ -182,6 +183,8 @@ func (s *server) PlayerAction(ctx context.Context, in *pb.PlayerMove) (*pb.Playe
 
 	switch gamedata.stage {
 	case 0:
+		stage1Players++
+
 		if playerMove <= gamedata.leaderNumber {
 			return &pb.PlayerState{PlayerState: pb.PlayerState_ALIVE.Enum()}, nil
 		}
@@ -609,6 +612,14 @@ func Leader_go() {
 
 		// For each round, tell all (alive) players that the round started
 		for ; gamedata.round < gamedata.numRoundsPerStage[gamedata.stage]; gamedata.round++ {
+
+			DebugLog("Waiting for players to send their moves...")
+
+			// wait until every player has sent it's move
+			for stage1Players < gamedata.currPlayers {
+				time.Sleep(100 * time.Millisecond)
+			}
+
 			DebugLogf("Starting stage:%d, round:%d", gamedata.stage, gamedata.round)
 
 			// Start the next round as long as the user input specifies that.
