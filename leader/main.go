@@ -501,7 +501,7 @@ func ProcessUserInput() bool {
 func GetUserInput() (UserInput, error) {
 	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", gamedata.round)
 
-	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", gamedata.round)
+	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", gamedata.round+1)
 	log.Printf("> Si desea consultar el historial de jugadas de un jugador, ingrese el id del jugador")
 
 	// Get user input
@@ -613,13 +613,14 @@ func Leader_go() {
 		// For each round, tell all (alive) players that the round started
 		for ; gamedata.round < gamedata.numRoundsPerStage[gamedata.stage]; gamedata.round++ {
 
-			DebugLog("Waiting for players to send their moves...")
-
 			// wait until every player has sent it's move
-			for stage1Players < gamedata.currPlayers {
-				time.Sleep(100 * time.Millisecond)
-			}
+			if gamedata.round > 0 {
 
+				DebugLog("Waiting for players to send their moves...")
+				for stage1Players < gamedata.currPlayers {
+					time.Sleep(100 * time.Millisecond)
+				}
+			}
 			DebugLogf("Starting stage:%d, round:%d", gamedata.stage, gamedata.round)
 
 			// Start the next round as long as the user input specifies that.
