@@ -328,8 +328,11 @@ func Player_go(playerType string, playerId uint32) {
 	forever_ch := make(chan bool)
 	go func() {
 
-		log.Printf("Player %d has a forever channel running", playerId)
-		time.Sleep(100 * time.Millisecond)
+		for {
+
+			log.Printf("Player %d has a forever channel running", playerId)
+			time.Sleep(100 * time.Millisecond)
+		}
 	}()
 
 	<-forever_ch
