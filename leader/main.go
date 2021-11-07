@@ -319,10 +319,12 @@ func (s *server) PlayerJoin(ctx context.Context, in *pb.JoinGameRequest) (*pb.Jo
 	DebugLogf("\t[server:PlayerJoin] Running function: PlayerJoin(ctx, in: %s)", in.String())
 	var reply *pb.JoinGameReply
 
-	if gamedata.currPlayers != playerNum || gamedata.stage != 0 {
+	if gamedata.currPlayers > playerNum || gamedata.stage > 0 {
+		DebugLog("\t[server:PlayerJoin] DENIED JOIN...")
 		reply = &pb.JoinGameReply{Msg: pb.JoinGameReply_DENY_JOIN.Enum()}
 	} else {
 		// get player index in list, update state and increase index
+		DebugLog("\t[server:PlayerJoin] ACCEPTED JOIN...")
 		p_idx := gamedata.currPlayers
 		gamedata.playerIdList[p_idx] = in.GetPlayerId()
 		gamedata.playerIdStates[p_idx] = playerState.Alive
