@@ -319,7 +319,7 @@ func (s *server) PlayerJoin(ctx context.Context, in *pb.JoinGameRequest) (*pb.Jo
 	DebugLogf("\t[server:PlayerJoin] Running function: PlayerJoin(ctx, in: %s)", in.String())
 	var reply *pb.JoinGameReply
 
-	if gamedata.currPlayers != playerNum || gamedata.stage != 1 {
+	if gamedata.currPlayers != playerNum || gamedata.stage != 0 {
 		reply = &pb.JoinGameReply{Msg: pb.JoinGameReply_DENY_JOIN.Enum()}
 	} else {
 		// get player index in list, update state and increase index
@@ -520,10 +520,6 @@ func ProcessUserInput(round *uint32) bool {
 	return false
 }
 
-func GetCurrentPlayers() uint32 {
-	return gamedata.currPlayers
-}
-
 func GetUserInput(round *uint32) (UserInput, error) {
 	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", *round)
 
@@ -584,8 +580,8 @@ func Leader_go() {
 	go LeaderToPlayerServer()
 
 	// wait until all players have connected
-	for GetCurrentPlayers() < 16 {
-		DebugLogf("Waiting for players (%d/16)...", GetCurrentPlayers())
+	for gamedata.currPlayers < 16 {
+		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
 		time.Sleep(50 * time.Millisecond)
 	}
 
