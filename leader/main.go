@@ -549,8 +549,6 @@ func Leader_go() {
 		key := fmt.Sprintf("player_%d", i)
 		addrListMap[key] = fmt.Sprintf(tmpAddr, i)
 		grpcmap[key] = GrpcData{}
-
-		DebugLogf("Setting grpcmap key: %s", key)
 	}
 
 	DebugLog("Starting game")
@@ -666,9 +664,6 @@ func Leader_go() {
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
-				DebugLogf("Setting grpcmap key: %s", playerKey)
-
-				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (grpcmap[playerKey].clientPlayer), (grpcmap[playerKey].clientData))
 
 				(grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
 					&pb.RoundState{
@@ -684,7 +679,13 @@ func Leader_go() {
 	}
 	DebugLog("Ending game")
 	// End of game
-	finalPlayers := GetLivingPlayers()
+	livingPlayers := GetLivingPlayers()
+	var finalPlayers []uint32
+
+	for i := 0; i < len(livingPlayers); i++ {
+		finalPlayers[i] = livingPlayers[i].id
+	}
+
 	if len(finalPlayers) > 0 {
 		log.Printf("> Los ganadores del juego del calamar son 🦑: %v ", finalPlayers)
 	} else {

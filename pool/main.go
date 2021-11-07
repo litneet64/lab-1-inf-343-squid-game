@@ -200,6 +200,7 @@ func Pool_go() {
 			playerId, _ := strconv.Atoi(text[0])
 			stage, _ := strconv.Atoi(text[1])
 			RegisterPlayerDeath(uint32(playerId), uint32(stage))
+			DebugLogf("Registering player %d, who died in stage %d", playerId, stage)
 		}
 	}()
 
