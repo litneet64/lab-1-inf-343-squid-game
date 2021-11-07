@@ -36,7 +36,7 @@ func main() {
 	case "player":
 		// Spawn other 15 players on their own processes
 		for id := 1; id < playerNum; id++ {
-			exec.Command(os.Args[0], "playerbot", fmt.Sprintf("-playerid %d", id), "&").Start()
+			exec.Command("/bin/bash", "-c", fmt.Sprintf("%v playerbot -playerid %d &", os.Args[0], id)).Start()
 		}
 
 		player.Player_go("human", 0)
