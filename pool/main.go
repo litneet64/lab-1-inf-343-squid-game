@@ -15,6 +15,48 @@ import (
 	"google.golang.org/grpc"
 )
 
+// DEBUG TESTING --
+type DebugLogger struct {
+	log         *log.Logger
+	initialized bool
+}
+
+func InitLogger(fileName string) func() error {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", fileName, err))
+	close := f.Close
+
+	logger := log.New(f, "", log.LstdFlags)
+	dlogger.log = logger
+	dlogger.initialized = true
+
+	return close
+}
+
+func DebugLog(msg ...string) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLog] logger was not initialized")
+	}
+	dlogger.log.Println(strings.Join(msg, " "))
+}
+
+func DebugLogf(msg string, a ...interface{}) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLogf] logger was not initialized")
+	}
+	dlogger.log.Println(fmt.Sprintf(msg, a...))
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		DebugLogf("[Fatal] %s: %v", msg, err)
+		log.Fatalf("[Fatal] %s: %v", msg, err)
+	}
+}
+
+var dlogger DebugLogger
+
+// DEBUG TESTING --
 const (
 	rabbitMqAddrEnv = "RABBITMQ_ADDR"
 	bindAddrEnv     = "POOL_BIND_ADDR"
@@ -28,14 +70,10 @@ type server struct {
 	pb.UnimplementedPrizeServer
 }
 
-func FailOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("[Error]: (%v) %s", err, msg)
-	}
-}
-
 // writes last player death and new pool prize
 func RegisterPlayerDeath(player uint32, stage uint32) {
+	DebugLogf("\t[Server:RegisterPlayerDeath] Running function: RegisterPlayerDeath(player: %d, stage: %d)", player, stage)
+
 	var f *os.File
 	var err error
 	var money uint32
@@ -66,6 +104,8 @@ func RegisterPlayerDeath(player uint32, stage uint32) {
 
 // return pool prize
 func RetrievePrice() (prize uint32) {
+	DebugLogf("\t[RetrievePrice] Running function: RetrievePrice()")
+
 	prize = 0
 
 	_, fErr := os.Stat("pool.txt")
@@ -88,6 +128,8 @@ func RetrievePrice() (prize uint32) {
 }
 
 func setupPoolServer() {
+	DebugLogf("\t[setupPoolServer] Running function: setupPoolServer()")
+
 	lis, err := net.Listen("tcp", bindAddr)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -107,6 +149,8 @@ func (s *server) GetPrize(ct context.Context, in *pb.CurrentPoolRequest) (*pb.Cu
 }
 
 func Pool_go() {
+	close := InitLogger("pool.log")
+	defer close()
 
 	bindAddr = os.Getenv(bindAddrEnv)
 	rabbitMqAddr = os.Getenv(rabbitMqAddrEnv)
@@ -114,6 +158,7 @@ func Pool_go() {
 	// grpc conection
 	go setupPoolServer()
 	// Dial Leader
+	DebugLog("Dialing RabbitMq pool")
 	conn, err := amqp.Dial(rabbitMqAddr)
 	FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
