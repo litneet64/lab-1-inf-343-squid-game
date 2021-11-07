@@ -384,16 +384,16 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, co
 	if entity != "namenode" && entity != "pool" {
 		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
 		grpcdata.clientPlayer = &clientPlayer
+		DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", *grpcdata.clientPlayer)
 	} else {
 		clientData = pb.NewDataRegistryServiceClient(grpcdata.conn)
 		grpcdata.clientData = &clientData
+		DebugLogf("\t[SetupDial] grpcdata.clientData=%v", *grpcdata.clientData)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	grpcdata.ctx = &ctx
 	grpcdata.cancel = &cancel
-
-	DebugLogf("\t[SetupDial-after] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", *grpcdata.clientPlayer, *grpcdata.clientData)
 
 	return conn.Close, cancel, err
 }
