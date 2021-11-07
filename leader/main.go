@@ -83,12 +83,12 @@ type PlayerState struct {
 
 // holds required data for a succesful grpc preamble dial
 type GrpcData struct {
-	ctx          *context.Context
+	ctx          context.Context
 	conn         *grpc.ClientConn
 	clientData   pb.DataRegistryServiceClient
 	clientPlayer pb.GameInteractionClient
 	clientPrize  pb.PrizeClient
-	cancel       *context.CancelFunc
+	cancel       context.CancelFunc
 }
 
 type RabbitMqData struct {
@@ -370,34 +370,6 @@ func RequestPrize(ctx context.Context, client pb.PrizeClient) uint32 {
 	return resp
 }
 
-// call grpc preamble
-func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, context.CancelFunc, error) {
-	var clientPlayer pb.GameInteractionClient
-	var clientData pb.DataRegistryServiceClient
-
-	DebugLogf("\t[SetupDial] Running function: SetupDial(addr: %s, grpcdata, entity: %s)", addr, entity)
-
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
-	grpcdata.conn = conn
-	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
-
-	if entity != "namenode" && entity != "pool" {
-		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
-		grpcdata.clientPlayer = clientPlayer
-		DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", grpcdata.clientPlayer)
-	} else {
-		clientData = pb.NewDataRegistryServiceClient(grpcdata.conn)
-		grpcdata.clientData = clientData
-		DebugLogf("\t[SetupDial] grpcdata.clientData=%v", grpcdata.clientData)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	grpcdata.ctx = &ctx
-	grpcdata.cancel = &cancel
-
-	return conn.Close, cancel, err
-}
-
 // main server for player functionality
 func LeaderToPlayerServer() {
 	DebugLog("\t[LeaderToPlayerServer] Running function: LeaderToPlayerServer()")
@@ -420,7 +392,7 @@ func RequestPlayerHistory(gamedata *GameData, grpcdata *GrpcData, playerId uint3
 	player_moves := make([]uint32, 0)
 
 	// Request stage player's history to namenode
-	stageData, err := (grpcdata.clientData).RequestPlayerData(*grpcdata.ctx,
+	stageData, err := (grpcdata.clientData).RequestPlayerData(*&grpcdata.ctx,
 		&pb.DataRequestParams{
 			PlayerId: &playerId,
 		})
@@ -449,7 +421,7 @@ func SendPlayerMoves(grpcdata *GrpcData, gamedata *GameData) {
 	}
 
 	// Send message to datanode
-	_, err := (grpcdata.clientData).TransferPlayerMoves(*grpcdata.ctx,
+	_, err := (grpcdata.clientData).TransferPlayerMoves(*&grpcdata.ctx,
 		&pb.PlayersMoves{
 			Stage:        &gamedata.stage,
 			Round:        &gamedata.round,
@@ -598,11 +570,32 @@ func Leader_go() {
 	}
 
 	// Setup clients and other grpc data for different kind of nodes
-	for entity, data := range grpcmap {
-		close, cancel, err := SetupDial(addrListMap[entity], &data, entity)
+	for entity := range grpcmap {
+		var entityData GrpcData
+
+		addr := addrListMap[entity]
+		DebugLogf("Setting up dial with addr=%s, entity=%s", addr, entity)
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
+
+		entityData.conn = conn
+
+		if entity != "namenode" && entity != "pool" {
+			entityData.clientPlayer = pb.NewGameInteractionClient(conn)
+			DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", entityData.clientPlayer)
+		} else {
+			entityData.clientData = pb.NewDataRegistryServiceClient(entityData.conn)
+			DebugLogf("\t[SetupDial] grpcdata.clientData=%v", entityData.clientData)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		entityData.ctx = ctx
+		entityData.cancel = cancel
 		FailOnError(err, fmt.Sprintf("[Leader] Error while setting up gRPC preamble: %v", err))
 
-		defer close()
+		grpcmap[entity] = entityData
+
+		defer conn.Close()
 		defer cancel()
 	}
 
@@ -656,7 +649,7 @@ func Leader_go() {
 				// Inform Pool about the dead player
 				PublishDeadPlayer(&playerId, &(gamedata.stage))
 				playerKey := fmt.Sprintf("player_%d", playerIndex)
-				grpcmap[playerKey].clientPlayer.RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
+				grpcmap[playerKey].clientPlayer.RoundStart(grpcmap[playerKey].ctx, &pb.RoundState{
 					Stage:       &(gamedata.stage),
 					Round:       &(gamedata.round),
 					PlayerState: pb.RoundState_DEAD.Enum(),
@@ -677,7 +670,7 @@ func Leader_go() {
 
 				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (grpcmap[playerKey].clientPlayer), (grpcmap[playerKey].clientData))
 
-				(grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
+				(grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
 					&pb.RoundState{
 						Stage:       &(gamedata.stage),
 						Round:       &(gamedata.round),
