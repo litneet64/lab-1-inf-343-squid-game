@@ -141,7 +141,7 @@ func setupPoolServer() {
 	}
 	s := grpc.NewServer()
 	pb.RegisterPrizeServer(s, &server{})
-	log.Printf("server listening at %v", lis.Addr())
+	DebugLogf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
@@ -203,7 +203,6 @@ func Pool_go() {
 		}
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	DebugLogf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
-	log.Println("[+] Success!")
 }
