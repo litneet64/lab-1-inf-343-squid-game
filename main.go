@@ -92,6 +92,7 @@ func main() {
 
 		player.Player_go("human", 0)
 	case "playerbot":
+		DebugLogf("Starting bot %d", playerId)
 		player.Player_go("bot", uint32(playerId))
 	case "namenode":
 		namenode.Namenode_go()
