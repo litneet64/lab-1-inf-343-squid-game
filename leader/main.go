@@ -606,8 +606,8 @@ func Leader_go() {
 	defer rabbitMqData.ch.Close()
 
 	// Main game loop
-	stage := &gamedata.stage
-	round := &gamedata.round
+	stage := &(gamedata.stage)
+	round := &(gamedata.round)
 
 	DebugLog("Starting main loop")
 
