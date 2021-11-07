@@ -17,7 +17,7 @@ const (
 )
 
 func show_help() {
-	log.Fatalf("[!] Usage: %s <role [leader/player_bot/player/namenode/datanode/pool]>", os.Args[0])
+	log.Fatalf("[!] Usage: %s <role [leader/player/namenode/datanode/pool]>", os.Args[0])
 }
 
 func main() {
