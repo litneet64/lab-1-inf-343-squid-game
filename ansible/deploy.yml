@@ -10,7 +10,9 @@
 
     - name: Kill current program related processes on all hosts
       shell: |
-        pkill --full --echo squid-bin || echo "Process wasn't running"
+        for pid in $(pgrep -f squid-bin | grep -v -x $$); do
+          kill $pid;
+        done
 
 - name: Start leader
   hosts: leaders

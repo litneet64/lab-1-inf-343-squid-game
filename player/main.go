@@ -50,8 +50,8 @@ func DebugLogf(msg string, a ...interface{}) {
 
 func FailOnError(err error, msg string) {
 	if err != nil {
-		DebugLogf("%s: %s", msg, err)
-		log.Fatalf("[Error]: (%v) %s", err, msg)
+		DebugLogf("[Fatal] %s: %v", msg, err)
+		log.Fatalf("[Fatal] %s: %v", msg, err)
 	}
 }
 
