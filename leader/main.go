@@ -596,40 +596,35 @@ func Leader_go() {
 		close, cancel, err := SetupDial(addrListMap[entity], &data, entity)
 		FailOnError(err, fmt.Sprintf("[Leader] Error while setting up gRPC preamble: %v", err))
 
-		DebugLogf("pre defer (*grpcmap[entity].conn).close()")
 		defer close()
 		defer cancel()
-		DebugLogf("post defer (*grpcmap[entity].conn).close()")
 	}
 
 	defer rabbitMqData.conn.Close()
 	defer rabbitMqData.ch.Close()
 
 	// Main game loop
-	stage := &(gamedata.stage)
-	round := &(gamedata.round)
-
 	DebugLog("Starting main loop")
 
 	// Iterate over each stage
-	for ; *stage < 3; (*stage)++ {
+	for ; gamedata.stage < 3; (gamedata.stage)++ {
 
 		// For each round, tell all (alive) players that the round started
-		for ; *round < gamedata.numRoundsPerStage[*stage]; (*round)++ {
-			DebugLogf("Starting stage:%d, round:%d", stage, round)
+		for ; gamedata.round < gamedata.numRoundsPerStage[gamedata.stage]; gamedata.round++ {
+			DebugLogf("Starting stage:%d, round:%d", gamedata.stage, gamedata.round)
 
 			// Start the next round as long as the user input specifies that.
 			// Otherwise, just repeat the process
-			startRound := ProcessUserInput(stage)
+			startRound := ProcessUserInput(&gamedata.stage)
 			if !startRound {
-				(*round)--
+				gamedata.round--
 				continue
 			}
 
 			currPlayers := GetLivingPlayers()
 
 			// Set leader number
-			switch *stage {
+			switch gamedata.stage {
 			case 0:
 				gamedata.leaderNumber = uint32(rand.Int31n(4) + 6)
 			case 1:
@@ -639,11 +634,11 @@ func Leader_go() {
 				gamedata.leaderNumber = uint32(rand.Int31n(10) + 1)
 
 			default:
-				log.Fatalf("[Error] Unreachable stage: %d", *stage)
+				log.Fatalf("[Error] Unreachable stage: %d", gamedata.stage)
 			}
 
 			// Kill random odd player
-			if (*stage) != 0 && gamedata.currPlayers%2 != 0 {
+			if (gamedata.stage) != 0 && gamedata.currPlayers%2 != 0 {
 				// Get random player
 				index := rand.Int31n(int32(gamedata.currPlayers))
 				playerId := currPlayers[index].id
@@ -652,11 +647,11 @@ func Leader_go() {
 				DebugLogf("Killing random player id:%d", playerId)
 
 				// Inform Pool about the dead player
-				PublishDeadPlayer(&playerId, stage)
+				PublishDeadPlayer(&playerId, &gamedata.stage)
 				playerKey := fmt.Sprintf("player_%d", playerIndex)
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
-					Stage:       stage,
-					Round:       round,
+					Stage:       &gamedata.stage,
+					Round:       &gamedata.round,
 					PlayerState: pb.RoundState_DEAD.Enum(),
 				})
 
@@ -667,14 +662,14 @@ func Leader_go() {
 
 			}
 
-			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", stage, round)
+			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
 
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
 					&pb.RoundState{
-						Stage:       stage,
-						Round:       round,
+						Stage:       &gamedata.stage,
+						Round:       &gamedata.round,
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
 
