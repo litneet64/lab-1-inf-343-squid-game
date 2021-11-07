@@ -383,9 +383,8 @@ func LeaderToPlayerServer() {
 	pb.RegisterGameInteractionServer(leader_srv, &server{})
 	DebugLogf("[Leader] Listening at %v", lis.Addr())
 
-	if err := leader_srv.Serve(lis); err != nil {
-		log.Fatalf("[Leader] Could not bind to %v : %v", bindAddr, err)
-	}
+	err = leader_srv.Serve(lis)
+	FailOnError(err, fmt.Sprintf("[Leader] Could not bind to %v : %v", bindAddr, err))
 }
 
 // request player history from namenode
@@ -621,7 +620,10 @@ func Leader_go() {
 				for stage1Players < gamedata.currPlayers {
 					time.Sleep(100 * time.Millisecond)
 				}
+
+				stage1Players = 0
 			}
+
 			DebugLogf("Starting stage:%d, round:%d", gamedata.stage, gamedata.round)
 
 			// Start the next round as long as the user input specifies that.
@@ -680,13 +682,12 @@ func Leader_go() {
 				DebugLogf("Requesting move to player %d", currPlayers[i].index)
 
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
-				playerAck, _ := (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
+				(grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
 					&pb.RoundState{
 						Stage:       &(gamedata.stage),
 						Round:       &(gamedata.round),
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
-				DebugLogf("Recieved player ACK %v, using key:%s", playerAck, playerKey)
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}
