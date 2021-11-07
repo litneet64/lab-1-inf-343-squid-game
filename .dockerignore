@@ -3,7 +3,7 @@
 .github/
 
 # dockerfile
-Dockerfile
+*Dockerfile
 
 # ansible related files
-ansible/
+#ansible/

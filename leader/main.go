@@ -593,10 +593,8 @@ func Leader_go() {
 			log.Fatalf("[Leader] Error while setting up gRPC preamble: %v", err)
 		}
 
-		DebugLog("(Pre conn.Close() defer)")
-		defer grpcmap[entity].conn.Close()
+		defer (*grpcmap[entity].conn).Close()
 		defer (*grpcmap[entity].cancel)()
-		DebugLog("(Post conn.Close() defer)")
 	}
 
 	defer rabbitMqData.conn.Close()

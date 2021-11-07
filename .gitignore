@@ -16,4 +16,7 @@
 
 # Misc
 *.txt
-squid-bin
+/squid-bin
+/hosts.ini
+/ansible_key
+/deploy.Dockerfile
