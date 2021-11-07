@@ -520,6 +520,10 @@ func ProcessUserInput(round *uint32) bool {
 	return false
 }
 
+func GetCurrentPlayers() uint32 {
+	return gamedata.currPlayers
+}
+
 func GetUserInput(round *uint32) (UserInput, error) {
 	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", *round)
 
@@ -580,8 +584,8 @@ func Leader_go() {
 	go LeaderToPlayerServer()
 
 	// wait until all players have connected
-	for gamedata.currPlayers < 16 {
-		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
+	for GetCurrentPlayers() < 16 {
+		DebugLogf("Waiting for players (%d/16)...", GetCurrentPlayers())
 		time.Sleep(50 * time.Millisecond)
 	}
 
