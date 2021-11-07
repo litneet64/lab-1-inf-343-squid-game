@@ -207,6 +207,7 @@ func GetUserInput(stage uint32) (move PlayerMove, err error) {
 	userInput, err := reader.ReadString('\n')
 	FailOnError(err, "[Error] Reading input")
 	parsedInput := strings.Trim(userInput, "\n")
+	DebugLogf("Player input was: \"%s\"", parsedInput)
 
 	if parsedInput == "pozo" {
 		DebugLog("\t[GetUserInput] User input was \"pozo\"")
