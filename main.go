@@ -78,9 +78,9 @@ func main() {
 	}
 	var playerId int
 
-	flag.IntVar(&playerId, "playerId", 0, "Specify player's ID (bot internals)")
-
-	DebugLogf("Arguments received: arg 0 = %s, arg 1 form 1 = %s, arg 1 form 2 = %d", os.Args[0], os.Args[1], playerId)
+	flag.IntVar(&playerId, "playerid", 0, "Specify player's ID (bot internals)")
+	flag.Parse()
+	DebugLogf("Arguments received: arg 1 = %s, arg 2 form 1 = %s, arg 1 form 2 = %d", os.Args[1], os.Args[2], playerId)
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
