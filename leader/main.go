@@ -381,8 +381,6 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, co
 	grpcdata.conn = conn
 	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
 
-	DebugLogf("\t[SetupDial-before] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (*grpcdata.clientPlayer), (*grpcdata.clientData))
-
 	if entity != "namenode" && entity != "pool" {
 		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
 		grpcdata.clientPlayer = &clientPlayer
