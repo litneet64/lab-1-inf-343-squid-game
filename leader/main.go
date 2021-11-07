@@ -538,6 +538,7 @@ func ShowPlayerHistory(playerId uint32, history *[]uint32) {
 // main leader function
 func Leader_go() {
 	InitLogger("leader.log")
+	rand.Seed(time.Now().UnixNano())
 
 	bindAddr = os.Getenv(bindAddrEnv)
 
@@ -685,7 +686,7 @@ func Leader_go() {
 						Round:       &(gamedata.round),
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
-				DebugLogf("Recieved player ACK %v", playerAck)
+				DebugLogf("Recieved player ACK %v, using key:%s", playerAck, playerKey)
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}

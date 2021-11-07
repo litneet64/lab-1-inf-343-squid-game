@@ -259,6 +259,7 @@ func SetupPlayerServer(playerId uint32) {
 func Player_go(playerType string, playerId uint32) {
 	// DEBUG LOGGER
 	InitLogger(fmt.Sprintf("player_%d.log", playerId))
+	rand.Seed(time.Now().UnixNano())
 
 	gamedata.playerType = playerType
 
