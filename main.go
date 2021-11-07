@@ -29,12 +29,12 @@ func main() {
 	case "leader":
 		leader.Leader_go()
 	case "player":
-		player.Player_go("human", playerId)
-
 		// Instantiate other 15 players
 		for id := 1; id < playerNum; id++ {
 			go player.Player_go("bot", uint32(id))
 		}
+
+		player.Player_go("human", playerId)
 	case "namenode":
 		namenode.Namenode_go()
 	case "datanode":

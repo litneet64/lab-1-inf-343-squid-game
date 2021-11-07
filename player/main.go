@@ -283,7 +283,7 @@ func Player_go(playerType string, playerId uint32) {
 	defer cancel()
 
 	// Start listening on port
-	SetupPlayerServer(playerId)
+	go SetupPlayerServer(playerId)
 
 	DebugLog("Setup player and server clients")
 

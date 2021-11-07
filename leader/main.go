@@ -603,6 +603,11 @@ func Leader_go() {
 	stage := &gamedata.stage
 	round := &gamedata.round
 
+	for gamedata.currPlayers < 16 {
+		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	DebugLog("Starting main loop")
 
 	// Iterate over each stage
