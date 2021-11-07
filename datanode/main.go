@@ -8,10 +8,54 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 
 	pb "github.com/litneet64/lab-2-squid-game/protogrpc"
 	"google.golang.org/grpc"
 )
+
+// DEBUG TESTING --
+type DebugLogger struct {
+	log         *log.Logger
+	initialized bool
+}
+
+func InitLogger(fileName string) func() error {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", fileName, err))
+	close := f.Close
+
+	logger := log.New(f, "", log.LstdFlags)
+	dlogger.log = logger
+	dlogger.initialized = true
+
+	return close
+}
+
+func DebugLog(msg ...string) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLog] logger was not initialized")
+	}
+	dlogger.log.Println(strings.Join(msg, " "))
+}
+
+func DebugLogf(msg string, a ...interface{}) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLogf] logger was not initialized")
+	}
+	dlogger.log.Println(fmt.Sprintf(msg, a...))
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		DebugLogf("%s: %s", msg, err)
+		log.Fatalf("[Error]: (%v) %s", err, msg)
+	}
+}
+
+var dlogger DebugLogger
+
+// DEBUG TESTING --
 
 type RoundInfo struct {
 	playerId   uint32
@@ -30,14 +74,9 @@ var (
 	bindAddr string
 )
 
-func FailOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("[Error]: (%v) %s", err, msg)
-	}
-}
-
 // Writes player move to a file
-func writeToFile(player uint32, stage uint32, move uint32) {
+func writeToFile(player *uint32, stage *uint32, move *uint32) {
+	DebugLogf("\t[writeToFile] Running function: writeToFile(player:%d, stage:%d, move:%d)", *player, *stage, *move)
 	var f *os.File
 	var err error
 
@@ -54,7 +93,8 @@ func writeToFile(player uint32, stage uint32, move uint32) {
 }
 
 // Parses registered player moves from it's file and returns them
-func GetPlayerStageRounds(player uint32, stage uint32) []uint32 {
+func GetPlayerStageRounds(player *uint32, stage *uint32) []uint32 {
+	DebugLogf("\t[GetPlayerStageRounds] Running function: GetPlayerStageRounds(player:%d, stage:%d)", *player, *stage)
 	// List of all player moves for a given stage
 	var moves []uint32
 
@@ -78,12 +118,15 @@ func GetPlayerStageRounds(player uint32, stage uint32) []uint32 {
 // calls. Transfers all moves that the group of players do in a specific
 // round and stage.
 func (s *server) TransferPlayerMoves(ctx context.Context, in *pb.PlayersMoves) (*pb.Empty, error) {
+	DebugLogf("\t[server:TransferPlayerMoves] Running function: TransferPlayerMoves(ctx, in: %s)", in.String())
 	moves := in.GetPlayersMoves()
 	stage := in.GetStage()
 
 	// For each move, append it to the corresponding file
 	for i := 0; i < len(moves); i++ {
-		writeToFile(moves[i].GetPlayerId(), stage, moves[i].GetPlayerMove())
+		playerId := moves[i].GetPlayerId()
+		playerMove := moves[i].GetPlayerMove()
+		writeToFile(&playerId, &stage, &playerMove)
 	}
 
 	// No reply is expected, so return empty message
@@ -93,17 +136,22 @@ func (s *server) TransferPlayerMoves(ctx context.Context, in *pb.PlayersMoves) (
 // The server-side implementation of the rpc function that the namenode
 // calls. Given a player id and stage, send all moves
 func (s *server) RequestPlayerData(ctx context.Context, in *pb.DataRequestParams) (*pb.StageData, error) {
+	DebugLogf("\t[server:RequestPlayerData] Running function: RequestPlayerData(ctx, in: %s)", in.String())
 	player := in.GetPlayerId()
 	stage := in.GetStage()
 
 	// Get moves by reading the player's files
-	moves := GetPlayerStageRounds(player, stage)
+	moves := GetPlayerStageRounds(&player, &stage)
 
 	// Send moves to the namenode
 	return &pb.StageData{PlayerMoves: moves}, nil
 }
 
 func Datanode_go() {
+	// DEBUG LOGGER
+	close := InitLogger("datanode.log")
+	defer close()
+
 	bindAddr = os.Getenv(bindAddrEnv)
 
 	// Set the listening port for the server
@@ -111,6 +159,8 @@ func Datanode_go() {
 	if err != nil {
 		log.Fatalf("[Datanode] Could not listen: %v", err)
 	}
+
+	DebugLogf("Listening on port %s", bindAddr)
 
 	// Define and register new server for this datanode
 	datanodeServer := grpc.NewServer()
@@ -120,5 +170,7 @@ func Datanode_go() {
 	if err := datanodeServer.Serve(lis); err != nil {
 		log.Fatalf("[Datanode] Could not serve: %v", err)
 	}
+
+	DebugLog("Starting grpc server")
 
 }

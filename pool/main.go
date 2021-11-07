@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	leaderRabbitEnv = "LEADER_RABBIT_ADDR"
+	rabbitMqAddrEnv = "RABBITMQ_ADDR"
 	bindAddrEnv     = "POOL_BIND_ADDR"
 )
 
 var (
-	bindAddr, leaderRabbitAddr string
+	bindAddr, rabbitMqAddr string
 )
 
 type server struct {
@@ -109,12 +109,12 @@ func (s *server) GetPrize(ct context.Context, in *pb.CurrentPoolRequest) (*pb.Cu
 func Pool_go() {
 
 	bindAddr = os.Getenv(bindAddrEnv)
-	leaderRabbitAddr = os.Getenv(leaderRabbitEnv)
+	rabbitMqAddr = os.Getenv(rabbitMqAddrEnv)
 
 	// grpc conection
 	go setupPoolServer()
 	// Dial Leader
-	conn, err := amqp.Dial(leaderRabbitAddr)
+	conn, err := amqp.Dial(rabbitMqAddr)
 	FailOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 

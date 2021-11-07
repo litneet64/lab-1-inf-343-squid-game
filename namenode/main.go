@@ -14,6 +14,49 @@ import (
 	"google.golang.org/grpc"
 )
 
+// DEBUG TESTING --
+type DebugLogger struct {
+	log         *log.Logger
+	initialized bool
+}
+
+func InitLogger(fileName string) func() error {
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", fileName, err))
+	close := f.Close
+
+	logger := log.New(f, "", log.LstdFlags)
+	dlogger.log = logger
+	dlogger.initialized = true
+
+	return close
+}
+
+func DebugLog(msg ...string) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLog] logger was not initialized")
+	}
+	dlogger.log.Println(strings.Join(msg, " "))
+}
+
+func DebugLogf(msg string, a ...interface{}) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLogf] logger was not initialized")
+	}
+	dlogger.log.Println(fmt.Sprintf(msg, a...))
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		DebugLogf("%s: %s", msg, err)
+		log.Fatalf("[Error]: (%v) %s", err, msg)
+	}
+}
+
+var dlogger DebugLogger
+
+// DEBUG TESTING --
+
 type RoundInfo struct {
 	playerId   uint32
 	playerMove uint32
@@ -45,42 +88,38 @@ var (
 	dataAddr1, dataAddr2, dataAddr3 string
 )
 
-func FailOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("[Error]: (%v) %s", err, msg)
-	}
-}
-
 // Save the given round info into a txt file of the given datanode
-func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage uint32, round uint32, roundInfo []RoundInfo) {
+func RegisterRoundMoves(client pb.DataRegistryServiceClient, stage *uint32, round *uint32, roundInfo *[]RoundInfo) {
+	DebugLogf("\t[RegisterRoundMoves] Running function: RegisterRoundMoves(client, stage:%d, round:%d, roundInfo[])", *stage, *round)
 	// Start timed context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	// Store each move, using `roundInfo`
-	all_moves := make([]*pb.PlayersMoves_Move, len(roundInfo))
+	all_moves := make([]*pb.PlayersMoves_Move, len(*roundInfo))
 
-	for i := 0; i < len(roundInfo); i++ {
+	for i := 0; i < len(*roundInfo); i++ {
 		all_moves[i] = &pb.PlayersMoves_Move{
-			PlayerId:   &roundInfo[i].playerId,
-			PlayerMove: &roundInfo[i].playerMove,
+			PlayerId:   &(*roundInfo)[i].playerId,
+			PlayerMove: &(*roundInfo)[i].playerMove,
 		}
 	}
 
 	// Send message to datanode
 	client.TransferPlayerMoves(ctx,
 		&pb.PlayersMoves{
-			Stage:        &stage,
-			Round:        &round,
+			Stage:        stage,
+			Round:        round,
 			PlayersMoves: all_moves,
 		})
 }
 
 // Recieve player history request from leader
 func (s *server) GetPlayerHistory(ctx context.Context, in *pb.PlayerHistoryRequest) (*pb.StageData, error) {
+	DebugLogf("\t[server:GetPlayerHistory] Running function: GetPlayerHistory(ctx, in: %s)", in.String())
 	// send player
 	playerId := in.GetPlayerId()
-	playerMoves := RetrievePlayerData(playerId)
+	playerMoves := RetrievePlayerData(&playerId)
 
 	reply := &pb.StageData{PlayerMoves: playerMoves}
 
@@ -88,7 +127,8 @@ func (s *server) GetPlayerHistory(ctx context.Context, in *pb.PlayerHistoryReque
 }
 
 // Recieves all the moves that a player has made.
-func RetrievePlayerData(player uint32) []uint32 {
+func RetrievePlayerData(player *uint32) []uint32 {
+	DebugLogf("\t[RetrievePlayerData] Running function: RetrievePlayerData(player:%d)", *player)
 	var requestQueue []*Client
 	var playerMoves []uint32
 
@@ -101,7 +141,8 @@ func RetrievePlayerData(player uint32) []uint32 {
 	// For each stage, get if there is an address associated to
 	// moves of the player
 	for i := 0; i < 3; i++ {
-		addr, err := GetMoveLocations(player, uint32(i))
+		ui := uint32(i)
+		addr, err := GetMoveLocations(player, &ui)
 
 		if err == nil {
 			requestQueue = append(requestQueue, addrToClient[addr])
@@ -121,7 +162,7 @@ func RetrievePlayerData(player uint32) []uint32 {
 		// Request to datanode and parse output
 		dataResp, _ := (*requestQueue[i].client).RequestPlayerData(ctx,
 			&pb.DataRequestParams{
-				PlayerId: &player,
+				PlayerId: player,
 				Stage:    &stage,
 			})
 
@@ -134,7 +175,8 @@ func RetrievePlayerData(player uint32) []uint32 {
 }
 
 // Saves node locations of player moves for each stage
-func SaveMoveLocations(player uint32, stage uint32, address string) {
+func SaveMoveLocations(player *uint32, stage *uint32, address *string) {
+	DebugLogf("\t[SaveMoveLocations] Running function: SaveMoveLocations(player:%d, stage:%d, address:%s)", *player, *stage, *address)
 
 	f, err := os.OpenFile("tablemap.txt", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	FailOnError(err, "can't open file \"tablemap.txt\"")
@@ -147,7 +189,8 @@ func SaveMoveLocations(player uint32, stage uint32, address string) {
 
 // Returns datanode address where player moves for a stage are located,
 // return empty string if not found
-func GetMoveLocations(player uint32, stage uint32) (string, error) {
+func GetMoveLocations(player *uint32, stage *uint32) (string, error) {
+	DebugLogf("\t[GetMoveLocations] Running function: GetMoveLocations(player:%d, stage:%d)", *player, *stage)
 	// Checks if save file exists
 	_, fErr := os.Stat("tablemap.txt")
 	if fErr != nil {
@@ -175,6 +218,9 @@ func GetMoveLocations(player uint32, stage uint32) (string, error) {
 }
 
 func Namenode_go() {
+	close := InitLogger("namenode.log")
+	defer close()
+
 	bindAddr = os.Getenv(bindAddrEnv)
 	dataAddr1 = os.Getenv(dataAddrEnv1)
 	dataAddr2 = os.Getenv(dataAddrEnv2)
@@ -205,12 +251,16 @@ func Namenode_go() {
 		defer conns[i].Close()
 	}
 
+	DebugLog("Dialing each client (Leader and Datanodes)")
+
 	lis, err := net.Listen("tcp", bindAddr)
 	FailOnError(err, "[Namenode] failed to listen on address")
 
+	DebugLogf("Listening on port %s", bindAddr)
+
 	namenode_srv := grpc.NewServer()
 	pb.RegisterDataRegistryServiceServer(namenode_srv, &server{})
-	log.Printf("[Namenode] Listening at %v", lis.Addr())
+	DebugLog("Running new grpc server")
 
 	if err := namenode_srv.Serve(lis); err != nil {
 		log.Fatalf("[Namenode] Could not bind to %v : %v", bindAddr, err)
