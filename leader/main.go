@@ -160,7 +160,7 @@ var (
 
 	// Map with struct that saves basic grpc dial data
 	grpcmap = map[string]GrpcData{
-		"namenode": {},
+		"namenode": GrpcData{},
 		"pool":     {},
 	}
 
@@ -365,7 +365,7 @@ func RequestPrize(ctx context.Context, client pb.PrizeClient) uint32 {
 	FailOnError(err, "[Leader] Couldn't communicate with Pool")
 
 	resp := response.GetCurrPrize()
-	log.Printf("[Leader] Pool prize response: %v", resp)
+	DebugLogf("[Leader] Pool prize response: %v", resp)
 
 	return resp
 }
@@ -381,6 +381,8 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, co
 	grpcdata.conn = conn
 	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
 
+	DebugLogf("\t[SetupDial-before] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (*grpcdata.clientPlayer), (*grpcdata.clientData))
+
 	if entity != "namenode" && entity != "pool" {
 		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
 		grpcdata.clientPlayer = &clientPlayer
@@ -393,6 +395,8 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, co
 	grpcdata.ctx = &ctx
 	grpcdata.cancel = &cancel
 
+	DebugLogf("\t[SetupDial-after] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", *grpcdata.clientPlayer, *grpcdata.clientData)
+
 	return conn.Close, cancel, err
 }
 
@@ -404,7 +408,7 @@ func LeaderToPlayerServer() {
 
 	leader_srv := grpc.NewServer()
 	pb.RegisterGameInteractionServer(leader_srv, &server{})
-	log.Printf("[Leader] Listening at %v", lis.Addr())
+	DebugLogf("[Leader] Listening at %v", lis.Addr())
 
 	if err := leader_srv.Serve(lis); err != nil {
 		log.Fatalf("[Leader] Could not bind to %v : %v", bindAddr, err)
@@ -666,6 +670,8 @@ func Leader_go() {
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
+
+				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (*grpcmap[playerKey].clientPlayer), (*grpcmap[playerKey].clientData))
 
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
 					&pb.RoundState{

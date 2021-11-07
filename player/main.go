@@ -121,7 +121,7 @@ func SendPlayerCommand(ctx context.Context, client pb.GameInteractionClient, com
 
 	switch command {
 	case pb.PlayerCommand_POOL.Enum():
-		log.Printf("La cantidad de dinero en el pozo es de: %v", response.GetReply())
+		log.Printf("> La cantidad de dinero en el pozo es de: %v", response.GetReply())
 
 	}
 }
@@ -204,15 +204,12 @@ func GetUserInput(stage uint32) (move PlayerMove, err error) {
 		// Otherwise, the range is from [1, 10]
 		log.Printf("> Ingrese número del 1 al 10 (inclusive) ")
 	}
-	log.Printf("o ingrese \"pozo\" para ver la cantidad de dinero actual: ")
+	log.Printf("> o ingrese \"pozo\" para ver la cantidad de dinero actual: ")
 
 	// Get user input
 	reader := bufio.NewReader(os.Stdin)
 	userInput, err := reader.ReadString('\n')
-	if err != nil {
-		log.Println("[Error] While reading your input!")
-		return
-	}
+	FailOnError(err, "[Error] Reading input")
 
 	if userInput == "pozo\n" {
 		DebugLog("\t[GetUserInput] User input was \"pozo\"")
@@ -255,7 +252,7 @@ func SetupPlayerServer(playerId uint32) {
 
 	player_srv := grpc.NewServer()
 	pb.RegisterGameInteractionServer(player_srv, &server{})
-	log.Printf("[player %d] Listening at %v", playerId, lis.Addr())
+	DebugLogf("[player %d] Listening at %v", playerId, lis.Addr())
 
 	err = player_srv.Serve(lis)
 	FailOnError(err, fmt.Sprintf("[player %d] Could not bind to %v : %v", playerId, bindAddr, err))
