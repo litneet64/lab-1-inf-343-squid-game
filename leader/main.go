@@ -371,25 +371,29 @@ func RequestPrize(ctx context.Context, client pb.PrizeClient) uint32 {
 }
 
 // call grpc preamble
-func SetupDial(addr string, grpcdata *GrpcData, entity string) error {
+func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, context.CancelFunc, error) {
+	var clientPlayer pb.GameInteractionClient
+	var clientData pb.DataRegistryServiceClient
+
 	DebugLogf("\t[SetupDial] Running function: SetupDial(addr: %s, grpcdata, entity: %s)", addr, entity)
-	connection, err := grpc.Dial(addr, grpc.WithInsecure())
-	grpcdata.conn = connection
+
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	grpcdata.conn = conn
 	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
 
 	if entity != "namenode" && entity != "pool" {
-		client := pb.NewGameInteractionClient(grpcdata.conn)
-		grpcdata.clientPlayer = &client
+		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
+		grpcdata.clientPlayer = &clientPlayer
 	} else {
-		client := pb.NewDataRegistryServiceClient(grpcdata.conn)
-		grpcdata.clientData = &client
+		clientData = pb.NewDataRegistryServiceClient(grpcdata.conn)
+		grpcdata.clientData = &clientData
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	grpcdata.ctx = &ctx
 	grpcdata.cancel = &cancel
 
-	return err
+	return conn.Close, cancel, err
 }
 
 // main server for player functionality
@@ -589,12 +593,13 @@ func Leader_go() {
 
 	// Setup clients and other grpc data for different kind of nodes
 	for entity, data := range grpcmap {
-		if err := SetupDial(addrListMap[entity], &data, entity); err != nil {
-			log.Fatalf("[Leader] Error while setting up gRPC preamble: %v", err)
-		}
+		close, cancel, err := SetupDial(addrListMap[entity], &data, entity)
+		FailOnError(err, fmt.Sprintf("[Leader] Error while setting up gRPC preamble: %v", err))
 
-		defer (*grpcmap[entity].conn).Close()
-		defer (*grpcmap[entity].cancel)()
+		DebugLogf("pre defer (*grpcmap[entity].conn).close()")
+		defer close()
+		defer cancel()
+		DebugLogf("post defer (*grpcmap[entity].conn).close()")
 	}
 
 	defer rabbitMqData.conn.Close()
