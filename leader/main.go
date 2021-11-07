@@ -669,7 +669,7 @@ func Leader_go() {
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
 
-				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (*grpcmap[playerKey].clientPlayer), (*grpcmap[playerKey].clientData))
+				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", *(grpcmap[playerKey].clientPlayer), *(grpcmap[playerKey].clientData))
 
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
 					&pb.RoundState{
