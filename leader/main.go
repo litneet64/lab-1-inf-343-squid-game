@@ -85,9 +85,9 @@ type PlayerState struct {
 type GrpcData struct {
 	ctx          *context.Context
 	conn         *grpc.ClientConn
-	clientData   *pb.DataRegistryServiceClient
-	clientPlayer *pb.GameInteractionClient
-	clientPrize  *pb.PrizeClient
+	clientData   pb.DataRegistryServiceClient
+	clientPlayer pb.GameInteractionClient
+	clientPrize  pb.PrizeClient
 	cancel       *context.CancelFunc
 }
 
@@ -160,7 +160,7 @@ var (
 
 	// Map with struct that saves basic grpc dial data
 	grpcmap = map[string]GrpcData{
-		"namenode": GrpcData{},
+		"namenode": {},
 		"pool":     {},
 	}
 
@@ -345,10 +345,10 @@ func (s *server) RequestCommand(ctx context.Context, in *pb.PlayerCommand) (*pb.
 	switch in.GetCommand() {
 	case pb.PlayerCommand_POOL:
 		// Re send round start to player
-		playerClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPlayer)
+		playerClient := grpcmap[fmt.Sprintf("player_%d", playerId)].clientPlayer
 		defer playerClient.RoundStart(ctx, in.GetRoundState())
 
-		prizeClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPrize)
+		prizeClient := grpcmap[fmt.Sprintf("player_%d", playerId)].clientPrize
 		prize := RequestPrize(ctx, prizeClient)
 		return &pb.CommandReply{Reply: &prize}, nil
 	}
@@ -383,12 +383,12 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, co
 
 	if entity != "namenode" && entity != "pool" {
 		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
-		grpcdata.clientPlayer = &clientPlayer
-		DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", *grpcdata.clientPlayer)
+		grpcdata.clientPlayer = clientPlayer
+		DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", grpcdata.clientPlayer)
 	} else {
 		clientData = pb.NewDataRegistryServiceClient(grpcdata.conn)
-		grpcdata.clientData = &clientData
-		DebugLogf("\t[SetupDial] grpcdata.clientData=%v", *grpcdata.clientData)
+		grpcdata.clientData = clientData
+		DebugLogf("\t[SetupDial] grpcdata.clientData=%v", grpcdata.clientData)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -420,7 +420,7 @@ func RequestPlayerHistory(gamedata *GameData, grpcdata *GrpcData, playerId uint3
 	player_moves := make([]uint32, 0)
 
 	// Request stage player's history to namenode
-	stageData, err := (*grpcdata.clientData).RequestPlayerData(*grpcdata.ctx,
+	stageData, err := (grpcdata.clientData).RequestPlayerData(*grpcdata.ctx,
 		&pb.DataRequestParams{
 			PlayerId: &playerId,
 		})
@@ -449,7 +449,7 @@ func SendPlayerMoves(grpcdata *GrpcData, gamedata *GameData) {
 	}
 
 	// Send message to datanode
-	_, err := (*grpcdata.clientData).TransferPlayerMoves(*grpcdata.ctx,
+	_, err := (grpcdata.clientData).TransferPlayerMoves(*grpcdata.ctx,
 		&pb.PlayersMoves{
 			Stage:        &gamedata.stage,
 			Round:        &gamedata.round,
@@ -652,7 +652,7 @@ func Leader_go() {
 				// Inform Pool about the dead player
 				PublishDeadPlayer(&playerId, &(gamedata.stage))
 				playerKey := fmt.Sprintf("player_%d", playerIndex)
-				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
+				grpcmap[playerKey].clientPlayer.RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
 					Stage:       &(gamedata.stage),
 					Round:       &(gamedata.round),
 					PlayerState: pb.RoundState_DEAD.Enum(),
@@ -669,9 +669,9 @@ func Leader_go() {
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
 
-				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", *(grpcmap[playerKey].clientPlayer), *(grpcmap[playerKey].clientData))
+				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (grpcmap[playerKey].clientPlayer), (grpcmap[playerKey].clientData))
 
-				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
+				(grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
 					&pb.RoundState{
 						Stage:       &(gamedata.stage),
 						Round:       &(gamedata.round),
