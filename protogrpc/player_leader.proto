@@ -21,6 +21,10 @@ service GameInteraction {
 
   // Player tells Leader a command (e.g. read pool prize)
   rpc RequestCommand (PlayerCommand) returns (CommandReply);
+
+  // Leader tells Players to wait (listen) for a second message with
+  // their state because it depends on other Players
+  //rpc RoundResult (PlayerState) returns (PlayerAck);
 }
 
 
@@ -49,7 +53,8 @@ message PlayerState {
   enum state {
     ALIVE = 0;
     DEAD = 1;
-    NOTPLAYING = 2;
+    WAITING = 2;
+    NOTPLAYING = 3;
   }
   optional state player_state = 1;
   
@@ -57,8 +62,15 @@ message PlayerState {
 // -- RoundStart messages:
 
 message RoundState {
+  enum state {
+    ALIVE = 0;
+    DEAD = 1;
+    WAITING = 2;
+  }
+
   optional uint32 stage = 1;
   optional uint32 round = 2;
+  optional state player_state = 3;
 }
 
 message PlayerAck {}

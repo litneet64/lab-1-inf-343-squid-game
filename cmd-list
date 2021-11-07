@@ -1,0 +1,8 @@
+player:
+  - ingresar: join request to leader
+  - <number>: send player move
+  - pozo: request pool pize
+
+leader:
+  - comenzar: start new or next round
+  - <id>: request history data of player
