@@ -210,14 +210,15 @@ func GetUserInput(stage uint32) (move PlayerMove, err error) {
 	reader := bufio.NewReader(os.Stdin)
 	userInput, err := reader.ReadString('\n')
 	FailOnError(err, "[Error] Reading input")
+	parsedInput := strings.Trim(userInput, "\n")
 
-	if userInput == "pozo\n" {
+	if parsedInput == "pozo" {
 		DebugLog("\t[GetUserInput] User input was \"pozo\"")
 		return PlayerMove{optCommand: pb.PlayerCommand_POOL, isNumber: false}, nil
 
 	} else {
 		// Convert string into an int
-		i_number, err := strconv.Atoi(userInput)
+		i_number, err := strconv.Atoi(parsedInput)
 		if err != nil {
 			log.Println("> No se pudo interpretar bien el input.")
 			return GetUserInput(stage)
