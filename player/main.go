@@ -260,7 +260,7 @@ func SetupPlayerServer(playerId uint32) {
 
 func Player_go(playerType string, playerId uint32) {
 	// DEBUG LOGGER
-	InitLogger("player.log")
+	InitLogger(fmt.Sprintf("player_%d.log", playerId))
 
 	gamedata.playerType = playerType
 
