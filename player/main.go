@@ -322,4 +322,8 @@ func Player_go(playerType string, playerId uint32) {
 			})
 		FailOnError(err, "[Error] Couldn't connect to leader\n")
 	}
+
+	// waits forever
+	forever_ch := make(chan bool)
+	<-forever_ch
 }
