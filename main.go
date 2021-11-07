@@ -80,7 +80,7 @@ func main() {
 
 	flag.IntVar(&playerId, "playerid", 0, "Specify player's ID (bot internals)")
 	flag.Parse()
-	DebugLogf("Arguments received: %s \nFlags parsed: playerId: %d ", strings.Join(os.Args[1:], ", "), playerId)
+	DebugLogf("Arguments received: %s \nFlags parsed: playerId: %d \nTail: %+q", strings.Join(os.Args[1:], ", "), playerId, flag.Args())
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
