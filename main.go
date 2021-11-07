@@ -77,7 +77,8 @@ func main() {
 	if len(os.Args[:]) < 2 {
 		show_help()
 	}
-	playerId, _ := strconv.Atoi(flag.Arg(1))
+
+	playerId, _ := strconv.Atoi(strings.TrimSpace(flag.Arg(1)))
 	flag.Parse()
 
 	DebugLogf("Arguments received: %+q", flag.Args())
