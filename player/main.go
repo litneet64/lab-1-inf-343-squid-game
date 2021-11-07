@@ -129,6 +129,7 @@ func SendPlayerCommand(ctx context.Context, client pb.GameInteractionClient, com
 // Recieve round start info
 func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.PlayerAck, err error) {
 	DebugLogf("\t[server:RoundStart] Running function: RoundStart(ctx, in: %s)", in.String())
+	log.Printf("AAA")
 	stage := in.GetStage()
 	round := in.GetRound()
 
