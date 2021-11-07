@@ -285,27 +285,37 @@ func Player_go(playerType string, playerId uint32) {
 
 	// -- Request to join game
 
-	// Get user input
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		log.Printf("> Para unirte al juego, escribe \"ingresar\": ")
-		userInput, err := reader.ReadString('\n')
-		FailOnError(err, "[Error] While reading your input!")
-		DebugLogf("Read user input: \"%s\"", userInput)
+	// Start game
+	if playerType == "human" {
 
-		if userInput == "ingresar" {
-			DebugLog("Sending 'PlayerJoin' request to Leader")
-			gamedata.playerId = playerId
-			_, err = client.PlayerJoin(ctx,
-				&pb.JoinGameRequest{
-					PlayerId: &playerId,
-				})
-			FailOnError(err, "[Error] Couldn't connect to leader\n")
+		// Get user input
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			log.Printf("> Para unirte al juego, escribe \"ingresar\": ")
+			userInput, err := reader.ReadString('\n')
+			FailOnError(err, "[Error] While reading your input!")
+			DebugLogf("Read user input: \"%s\"", userInput)
 
-			break
-		} else {
-			DebugLog("Comand not recognized")
-			log.Printf("> No se pudo reconocer el comando, por favor inténtelo de nuevo.")
+			if userInput == "ingresar" {
+				DebugLog("Sending 'PlayerJoin' request to Leader")
+				gamedata.playerId = playerId
+				_, err = client.PlayerJoin(ctx,
+					&pb.JoinGameRequest{
+						PlayerId: &playerId,
+					})
+				FailOnError(err, "[Error] Couldn't connect to leader\n")
+
+				break
+			} else {
+				DebugLog("Comand not recognized")
+				log.Printf("> No se pudo reconocer el comando, por favor inténtelo de nuevo.")
+			}
 		}
+	} else {
+		_, err = client.PlayerJoin(ctx,
+			&pb.JoinGameRequest{
+				PlayerId: &playerId,
+			})
+		FailOnError(err, "[Error] Couldn't connect to leader\n")
 	}
 }

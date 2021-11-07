@@ -14,26 +14,6 @@
           kill $pid || echo "Process wasn't running";
         done
 
-- name: Start leader
-  hosts: leaders
-  tasks:
-    - name: Run on background
-      shell:
-        cmd: "(sleep 40 && ./squid-bin leader &)"
-        chdir: "$HOME/squid-game"
-      async: 30
-      poll: 0
-
-- name: Start namenode
-  hosts: namenodes
-  tasks:
-    - name: Run on background
-      shell:
-        cmd: "(sleep 30 && ./squid-bin namenode &)"
-        chdir: "$HOME/squid-game"
-      async: 30
-      poll: 0
-
 - name: Start datanodes
   hosts: datanodes
   tasks:
@@ -44,12 +24,32 @@
       async: 30
       poll: 0
 
+- name: Start namenode
+  hosts: namenodes
+  tasks:
+    - name: Run on background
+      shell:
+        cmd: "(sleep 5 && ./squid-bin namenode &)"
+        chdir: "$HOME/squid-game"
+      async: 30
+      poll: 0
+
 - name: Start pool
   hosts: pool
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 30 && ./squid-bin pool &)"
+        cmd: "(sleep 5 && ./squid-bin pool &)"
+        chdir: "$HOME/squid-game"
+      async: 30
+      poll: 0
+
+- name: Start leader
+  hosts: leaders
+  tasks:
+    - name: Run on background
+      shell:
+        cmd: "(sleep 10 && ./squid-bin leader &)"
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -59,7 +59,7 @@
   tasks:
     - name: Start player on background (attach to it with fg)
       shell: |
-        (sleep 5 && ./squid-bin human &)
+        (sleep 10 && ./squid-bin human &)
       args:
         chdir: "$HOME/squid-game"
       async: 30
