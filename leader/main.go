@@ -473,10 +473,10 @@ func GetLivingPlayers() (players []Player) {
 	return
 }
 
-func ProcessUserInput(round *uint32) bool {
-	DebugLogf("\t[ProcessUserInput] Running function: ProcessUserInput(round: %d)", *round)
+func ProcessUserInput() bool {
+	DebugLogf("\t[ProcessUserInput] Running function: ProcessUserInput(round: %d)", gamedata.round)
 
-	userInput, err := GetUserInput(round)
+	userInput, err := GetUserInput()
 	FailOnError(err, "")
 
 	if userInput.isPlayerId {
@@ -495,10 +495,10 @@ func ProcessUserInput(round *uint32) bool {
 	return false
 }
 
-func GetUserInput(round *uint32) (UserInput, error) {
-	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", *round)
+func GetUserInput() (UserInput, error) {
+	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", gamedata.round)
 
-	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", *round)
+	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", gamedata.round)
 	log.Printf("> Si desea consultar el historial de jugadas de un jugador, ingrese el id del jugador")
 
 	// Get user input
@@ -515,7 +515,7 @@ func GetUserInput(round *uint32) (UserInput, error) {
 		i_number, err := strconv.Atoi(parsedInput)
 		if err != nil {
 			log.Println("> No se pudo interpretar bien el input.")
-			return GetUserInput(round)
+			return GetUserInput()
 		}
 
 		return UserInput{optPlayerId: uint32(i_number), isPlayerId: true}, nil
@@ -613,7 +613,7 @@ func Leader_go() {
 
 			// Start the next round as long as the user input specifies that.
 			// Otherwise, just repeat the process
-			startRound := ProcessUserInput(&gamedata.stage)
+			startRound := ProcessUserInput()
 			if !startRound {
 				gamedata.round--
 				continue
