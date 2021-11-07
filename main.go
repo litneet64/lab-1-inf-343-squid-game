@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/litneet64/lab-2-squid-game/datanode"
 	"github.com/litneet64/lab-2-squid-game/leader"
@@ -13,6 +14,53 @@ import (
 	"github.com/litneet64/lab-2-squid-game/player"
 	"github.com/litneet64/lab-2-squid-game/pool"
 )
+
+type DebugLogger struct {
+	fileName    string
+	initialized bool
+}
+
+func InitLogger(fileName string) {
+	dlogger.fileName = fileName
+	dlogger.initialized = true
+}
+
+func DebugLog(msg ...string) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLog] logger was not initialized")
+	}
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(strings.Join(msg, " "))
+}
+
+func DebugLogf(msg string, a ...interface{}) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLogf] logger was not initialized")
+	}
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(fmt.Sprintf(msg, a...))
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		DebugLogf("[Fatal] %s: %v", msg, err)
+		log.Fatalf("[Fatal] %s: %v", msg, err)
+	}
+}
+
+var dlogger DebugLogger
+
+// DEBUG TESTING --
 
 const (
 	playerNum = 16
@@ -23,12 +71,16 @@ func show_help() {
 }
 
 func main() {
+	InitLogger("hub.log")
+
 	if len(os.Args[:]) < 2 {
 		show_help()
 	}
 	var playerId int
 
 	flag.IntVar(&playerId, "playerId", 0, "Specify player's ID (bot internals)")
+
+	DebugLogf("Arguments received: arg 0 = %s, arg 1 form 1 = %s, arg 1 form 2 = %d", os.Args[0], os.Args[1], playerId)
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
