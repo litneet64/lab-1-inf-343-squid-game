@@ -676,14 +676,16 @@ func Leader_go() {
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 
-				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
+				DebugLogf("Requesting move to player %d", currPlayers[i].index)
 
-				(grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
+				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
+				playerAck, _ := (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
 					&pb.RoundState{
 						Stage:       &(gamedata.stage),
 						Round:       &(gamedata.round),
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
+				DebugLogf("Recieved player ACK %v", playerAck)
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}
