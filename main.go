@@ -78,7 +78,7 @@ func main() {
 		show_help()
 	}
 	playerId, _ := strconv.Atoi(flag.Arg(1))
-
+	flag.Parse()
 	DebugLogf("Arguments received: %+q", flag.Args())
 
 	switch cmd := os.Args[1]; cmd {
