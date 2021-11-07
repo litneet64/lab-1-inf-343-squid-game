@@ -27,8 +27,8 @@ func main() {
 		show_help()
 	}
 
-	parseId := flag.Int("playerid", 0, "Specify player's ID (for bot's internals)")
-	flag.Parse()
+	playerBotFlag := flag.NewFlagSet("playerbot", flag.ExitOnError)
+	playerId := playerBotFlag.Int("playerid", 1, "Specify player's ID (bot internals)")
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
@@ -36,12 +36,13 @@ func main() {
 	case "player":
 		// Spawn other 15 players on their own processes
 		for id := 1; id < playerNum; id++ {
-			exec.Command(os.Args[0], "playerbot", fmt.Sprintf("-playerid=%d", id)).Start()
+			exec.Command(os.Args[0], "playerbot", fmt.Sprintf("-playerid %d", id)).Start()
 		}
 
 		player.Player_go("human", 0)
 	case "playerbot":
-		player.Player_go("bot", uint32(*parseId))
+		playerBotFlag.Parse(os.Args[2:])
+		player.Player_go("bot", uint32(*playerId))
 	case "namenode":
 		namenode.Namenode_go()
 	case "datanode":
