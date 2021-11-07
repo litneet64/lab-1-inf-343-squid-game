@@ -80,6 +80,7 @@ func main() {
 	playerId, _ := strconv.Atoi(flag.Arg(1))
 	flag.Parse()
 	DebugLogf("Arguments received: %+q", flag.Args())
+	DebugLogf("Arguments received: %v, %v", flag.Arg(0), flag.Arg((1)))
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
