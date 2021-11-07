@@ -18,34 +18,39 @@ import (
 
 // DEBUG TESTING --
 type DebugLogger struct {
-	log         *log.Logger
+	fileName    string
 	initialized bool
 }
 
-func InitLogger(fileName string) func() error {
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
-	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", fileName, err))
-	close := f.Close
-
-	logger := log.New(f, "", log.LstdFlags)
-	dlogger.log = logger
+func InitLogger(fileName string) {
+	dlogger.fileName = fileName
 	dlogger.initialized = true
-
-	return close
 }
 
 func DebugLog(msg ...string) {
 	if !dlogger.initialized {
 		log.Fatalf("[DebugLog] logger was not initialized")
 	}
-	dlogger.log.Println(strings.Join(msg, " "))
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(strings.Join(msg, " "))
 }
 
 func DebugLogf(msg string, a ...interface{}) {
 	if !dlogger.initialized {
 		log.Fatalf("[DebugLogf] logger was not initialized")
 	}
-	dlogger.log.Println(fmt.Sprintf(msg, a...))
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(fmt.Sprintf(msg, a...))
 }
 
 func FailOnError(err error, msg string) {
@@ -258,8 +263,7 @@ func SetupPlayerServer(playerId uint32) {
 
 func Player_go(playerType string, playerId uint32) {
 	// DEBUG LOGGER
-	close := InitLogger("player.log")
-	defer close()
+	InitLogger("player.log")
 
 	gamedata.playerType = playerType
 
