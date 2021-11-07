@@ -170,11 +170,10 @@ func Datanode_go() {
 	datanodeServer := grpc.NewServer()
 	pb.RegisterDataRegistryServiceServer(datanodeServer, &server{})
 
+	DebugLog("Starting grpc server")
+
 	// Start listening
 	if err := datanodeServer.Serve(lis); err != nil {
 		log.Fatalf("[Datanode] Could not serve: %v", err)
 	}
-
-	DebugLog("Starting grpc server")
-
 }

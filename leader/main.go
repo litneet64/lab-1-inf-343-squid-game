@@ -106,7 +106,6 @@ type GameData struct {
 	round             uint32            // current round
 	numRoundsPerStage []uint32          // stage's duration (defined prior to game)
 	leaderNumber      uint32            // number selected by leader for current round
-	roundHasStarted   bool              // checked when waiting for leader to run "comenzar" (used for thread sync)
 	groupsProcessed   bool              // groups have been processed by a thread already after a stage (used for thread sync)
 }
 
@@ -331,11 +330,6 @@ func (s *server) PlayerJoin(ctx context.Context, in *pb.JoinGameRequest) (*pb.Jo
 		reply = &pb.JoinGameReply{Msg: pb.JoinGameReply_ACCEPT_JOIN.Enum()}
 	}
 
-	// wait until game has been started by leader (user input)
-	for !gamedata.roundHasStarted {
-		time.Sleep(250 * time.Millisecond)
-	}
-
 	return reply, nil
 }
 
@@ -538,7 +532,6 @@ func GetUserInput(round *uint32) (UserInput, error) {
 	FailOnError(err, "[Error] While reading your input!")
 
 	if userInput == "comenzar" {
-		gamedata.roundHasStarted = true
 		return UserInput{optCommand: "comenzar", isPlayerId: false}, nil
 
 	} else {
@@ -586,6 +579,12 @@ func Leader_go() {
 	// Start listening for players on another goroutine
 	go LeaderToPlayerServer()
 
+	// wait until all players have connected
+	for gamedata.currPlayers < 16 {
+		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
+		time.Sleep(50 * time.Millisecond)
+	}
+
 	// Setup clients and other grpc data for different kind of nodes
 	for entity, data := range grpcmap {
 		if err := SetupDial(addrListMap[entity], &data, entity); err != nil {
@@ -603,11 +602,6 @@ func Leader_go() {
 	stage := &gamedata.stage
 	round := &gamedata.round
 
-	for gamedata.currPlayers < 16 {
-		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
-		time.Sleep(100 * time.Millisecond)
-	}
-
 	DebugLog("Starting main loop")
 
 	// Iterate over each stage
@@ -621,11 +615,9 @@ func Leader_go() {
 			// Otherwise, just repeat the process
 			startRound := ProcessUserInput(stage)
 			if !startRound {
-				gamedata.roundHasStarted = false
 				(*round)--
 				continue
 			}
-			gamedata.roundHasStarted = true
 
 			currPlayers := GetLivingPlayers()
 
