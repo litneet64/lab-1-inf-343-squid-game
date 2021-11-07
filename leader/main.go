@@ -505,13 +505,14 @@ func GetUserInput(round *uint32) (UserInput, error) {
 	reader := bufio.NewReader(os.Stdin)
 	userInput, err := reader.ReadString('\n')
 	FailOnError(err, "[Error] While reading your input!")
+	parsedInput := strings.Trim(userInput, "\n")
 
-	if userInput == "comenzar\n" {
+	if parsedInput == "comenzar" {
 		return UserInput{optCommand: "comenzar", isPlayerId: false}, nil
 
 	} else {
 		// Convert string into an int
-		i_number, err := strconv.Atoi(userInput)
+		i_number, err := strconv.Atoi(parsedInput)
 		if err != nil {
 			log.Println("> No se pudo interpretar bien el input.")
 			return GetUserInput(round)

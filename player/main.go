@@ -275,7 +275,7 @@ func Player_go(playerType string, playerId uint32) {
 	defer conn.Close()
 
 	client := pb.NewGameInteractionClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
 	gamedata.client = client
 	defer cancel()
 
@@ -295,16 +295,19 @@ func Player_go(playerType string, playerId uint32) {
 			log.Printf("> Para unirte al juego, escribe \"ingresar\": ")
 			userInput, err := reader.ReadString('\n')
 			FailOnError(err, "[Error] While reading your input!")
-			DebugLogf("Read user input: \"%s\"", userInput)
 
-			if userInput == "ingresar\n" {
+			parsedInput := strings.Trim(userInput, "\n")
+
+			DebugLogf("Read user input: \"%s\"", parsedInput)
+
+			if parsedInput == "ingresar" {
 				DebugLog("Sending 'PlayerJoin' request to Leader")
 				gamedata.playerId = playerId
 				_, err = client.PlayerJoin(ctx,
 					&pb.JoinGameRequest{
 						PlayerId: &playerId,
 					})
-				FailOnError(err, "[Error] Couldn't connect to leader\n")
+				FailOnError(err, "[Error] Couldn't connect to leader")
 
 				break
 			} else {
@@ -317,7 +320,7 @@ func Player_go(playerType string, playerId uint32) {
 			&pb.JoinGameRequest{
 				PlayerId: &playerId,
 			})
-		FailOnError(err, "[Error] Couldn't connect to leader\n")
+		FailOnError(err, "[Error] Couldn't connect to leader")
 	}
 
 	// waits forever
