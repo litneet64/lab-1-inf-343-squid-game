@@ -214,7 +214,7 @@ func GetUserInput(stage uint32) (move PlayerMove, err error) {
 		return
 	}
 
-	if userInput == "pozo" {
+	if userInput == "pozo\n" {
 		DebugLog("\t[GetUserInput] User input was \"pozo\"")
 		return PlayerMove{optCommand: pb.PlayerCommand_POOL, isNumber: false}, nil
 
@@ -300,7 +300,7 @@ func Player_go(playerType string, playerId uint32) {
 			FailOnError(err, "[Error] While reading your input!")
 			DebugLogf("Read user input: \"%s\"", userInput)
 
-			if userInput == "ingresar" {
+			if userInput == "ingresar\n" {
 				DebugLog("Sending 'PlayerJoin' request to Leader")
 				gamedata.playerId = playerId
 				_, err = client.PlayerJoin(ctx,

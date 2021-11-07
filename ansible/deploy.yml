@@ -49,7 +49,8 @@
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 10 && ./squid-bin leader &)"
+        cmd: |
+          tmux new-session -A -s leader \; send -t leader "./squid-bin leader &" ENTER \; detach -s leader
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -59,7 +60,7 @@
   tasks:
     - name: Start player on background (attach to it with fg)
       shell: |
-        (sleep 10 && ./squid-bin human &)
+        tmux new-session -A -s player \; send -t player "./squid-bin player &" ENTER \; detach -s player
       args:
         chdir: "$HOME/squid-game"
       async: 30
