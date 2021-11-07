@@ -53,8 +53,8 @@ func DebugLogf(msg string, a ...interface{}) {
 
 func FailOnError(err error, msg string) {
 	if err != nil {
-		DebugLogf("%s: %s", msg, err)
-		log.Fatalf("[Error]: (%v) %s", err, msg)
+		DebugLogf("[Fatal] %s: %v", msg, err)
+		log.Fatalf("[Fatal] %s: %v", msg, err)
 	}
 }
 
@@ -463,10 +463,10 @@ func RabbitMqSetup() {
 	DebugLog("\t[RabbitMqSettup] Running function: RabbitMqSettup()")
 	// -- Special setup to dial Pool with RabbitMQ
 	conn, err := amqp.Dial(addrListMap["rabbitmq"])
-	FailOnError(err, "[Leader] Failed to connect to Pool using RabbitMQ")
+	FailOnError(err, "Failed to connect to Pool using RabbitMQ")
 
 	ch, err := conn.Channel()
-	FailOnError(err, "[Leader] Failed to open a channel with Pool")
+	FailOnError(err, "Failed to open a channel with Pool")
 
 	q, err := ch.QueueDeclare(
 		"deadpool", // name
@@ -476,7 +476,7 @@ func RabbitMqSetup() {
 		false,      // no-wait
 		nil,        // arguments
 	)
-	FailOnError(err, "[Leader] Failed to declare queue \"dead pool\"")
+	FailOnError(err, "Failed to declare queue \"dead pool\"")
 
 	// Save globally
 	rabbitMqData.queue = &q
