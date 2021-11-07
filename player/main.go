@@ -175,14 +175,10 @@ func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
 		roundResult, _ := SendPlayerMove(ctx, gamedata.client, &move.optNumber)
 		gamedata.state = roundResult
 
-		switch roundResult {
-		case pb.PlayerState_DEAD:
+		if roundResult == pb.PlayerState_DEAD {
 			DebugLog("\t[ProcessPlayerMove] Leader chose player randomly and killed this process")
 			// If the player died, then kill the current process
 			log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
-
-		case pb.PlayerState_WAITING:
-
 		}
 	} else {
 		DebugLog("\t[ProcessPlayerMove] Requesting to read pool price to Leader")
