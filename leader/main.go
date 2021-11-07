@@ -614,7 +614,7 @@ func Leader_go() {
 		for ; gamedata.round < gamedata.numRoundsPerStage[gamedata.stage]; gamedata.round++ {
 
 			// wait until every player has sent it's move
-			if gamedata.round > 0 {
+			if gamedata.stage < 1 && gamedata.round > 0 {
 
 				DebugLog("Waiting for players to send their moves...")
 				for stage1Players < gamedata.currPlayers {

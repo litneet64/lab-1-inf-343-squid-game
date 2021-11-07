@@ -326,5 +326,8 @@ func Player_go(playerType string, playerId uint32) {
 
 	// waits forever
 	forever_ch := make(chan bool)
+
+	log.Printf("Player %d has a forever channel running", playerId)
+	time.Sleep(100 * time.Millisecond)
 	<-forever_ch
 }
