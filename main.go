@@ -26,9 +26,9 @@ func main() {
 	if len(os.Args[:]) < 2 {
 		show_help()
 	}
+	var playerId int
 
-	playerBotFlag := flag.NewFlagSet("playerbot", flag.ExitOnError)
-	playerId := playerBotFlag.Int("playerid", 1, "Specify player's ID (bot internals)")
+	flag.IntVar(&playerId, "playerId", 0, "Specify player's ID (bot internals)")
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
@@ -41,8 +41,7 @@ func main() {
 
 		player.Player_go("human", 0)
 	case "playerbot":
-		playerBotFlag.Parse(os.Args[2:])
-		player.Player_go("bot", uint32(*playerId))
+		player.Player_go("bot", uint32(playerId))
 	case "namenode":
 		namenode.Namenode_go()
 	case "datanode":
