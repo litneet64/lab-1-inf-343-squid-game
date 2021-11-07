@@ -573,8 +573,12 @@ func Leader_go() {
 	// Loop over all players to save grpc data
 	for i := 0; i < 16; i++ {
 		tmpAddr := strings.Join([]string{os.Getenv(playerAddrEnv), "%02d"}, "")
-		addrListMap[fmt.Sprintf("player_%d", i)] = fmt.Sprintf(tmpAddr, i)
-		grpcmap[fmt.Sprintf("player_%d", i)] = GrpcData{}
+
+		key := fmt.Sprintf("player_%d", i)
+		addrListMap[key] = fmt.Sprintf(tmpAddr, i)
+		grpcmap[key] = GrpcData{}
+
+		DebugLogf("Setting grpcmap key: %s", key)
 	}
 
 	DebugLog("Starting game")
@@ -667,7 +671,9 @@ func Leader_go() {
 
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
 			for i := 0; i < int(gamedata.currPlayers); i++ {
+
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
+				DebugLogf("Setting grpcmap key: %s", playerKey)
 
 				DebugLogf("\t[Leader_go] grpcdata.clientPlayer=%v, grpcdata.clientData=%v", (grpcmap[playerKey].clientPlayer), (grpcmap[playerKey].clientData))
 
