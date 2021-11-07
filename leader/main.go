@@ -375,12 +375,7 @@ func SetupDial(addr string, grpcdata *GrpcData, entity string) error {
 	DebugLogf("\t[SetupDial] Running function: SetupDial(addr: %s, grpcdata, entity: %s)", addr, entity)
 	connection, err := grpc.Dial(addr, grpc.WithInsecure())
 	grpcdata.conn = connection
-
-	if err != nil {
-		log.Fatalf("[Leader] Couldn't connect to target: %v", err)
-	} else {
-		log.Println("Connection was successful")
-	}
+	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
 
 	if entity != "namenode" && entity != "pool" {
 		client := pb.NewGameInteractionClient(grpcdata.conn)
@@ -582,8 +577,13 @@ func Leader_go() {
 	go LeaderToPlayerServer()
 
 	// wait until all players have connected
+	prev := gamedata.currPlayers - 1
 	for gamedata.currPlayers < 16 {
-		DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
+
+		if prev != gamedata.currPlayers {
+			DebugLogf("Waiting for players (%d/16)...", gamedata.currPlayers)
+			prev = gamedata.currPlayers
+		}
 		time.Sleep(50 * time.Millisecond)
 	}
 
@@ -593,8 +593,10 @@ func Leader_go() {
 			log.Fatalf("[Leader] Error while setting up gRPC preamble: %v", err)
 		}
 
+		DebugLog("(Pre conn.Close() defer)")
 		defer grpcmap[entity].conn.Close()
 		defer (*grpcmap[entity].cancel)()
+		DebugLog("(Post conn.Close() defer)")
 	}
 
 	defer rabbitMqData.conn.Close()
