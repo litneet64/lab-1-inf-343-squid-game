@@ -11,7 +11,7 @@
     - name: Kill current program related processes on all hosts
       shell: |
         for pid in $(pgrep -f squid-bin | grep -v -x $$); do
-          kill $pid;
+          kill $pid || echo "Process wasn't running";
         done
 
 - name: Start leader
