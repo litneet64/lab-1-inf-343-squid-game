@@ -524,7 +524,7 @@ func ProcessUserInput(round *uint32) bool {
 func GetUserInput(round *uint32) (UserInput, error) {
 	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", *round)
 
-	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", round)
+	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", *round)
 	log.Printf("> Si desea consultar el historial de jugadas de un jugador, ingrese el id del jugador")
 
 	// Get user input
@@ -636,9 +636,10 @@ func Leader_go() {
 			default:
 				log.Fatalf("[Error] Unreachable stage: %d", gamedata.stage)
 			}
+			DebugLogf("Leader chose number %d", gamedata.leaderNumber)
 
 			// Kill random odd player
-			if (gamedata.stage) != 0 && gamedata.currPlayers%2 != 0 {
+			if gamedata.stage != 0 && gamedata.currPlayers%2 != 0 {
 				// Get random player
 				index := rand.Int31n(int32(gamedata.currPlayers))
 				playerId := currPlayers[index].id
@@ -647,11 +648,11 @@ func Leader_go() {
 				DebugLogf("Killing random player id:%d", playerId)
 
 				// Inform Pool about the dead player
-				PublishDeadPlayer(&playerId, &gamedata.stage)
+				PublishDeadPlayer(&playerId, &(gamedata.stage))
 				playerKey := fmt.Sprintf("player_%d", playerIndex)
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
-					Stage:       &gamedata.stage,
-					Round:       &gamedata.round,
+					Stage:       &(gamedata.stage),
+					Round:       &(gamedata.round),
 					PlayerState: pb.RoundState_DEAD.Enum(),
 				})
 
@@ -668,8 +669,8 @@ func Leader_go() {
 
 				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
 					&pb.RoundState{
-						Stage:       &gamedata.stage,
-						Round:       &gamedata.round,
+						Stage:       &(gamedata.stage),
+						Round:       &(gamedata.round),
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
 
