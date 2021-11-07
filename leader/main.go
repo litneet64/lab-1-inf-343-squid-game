@@ -531,7 +531,7 @@ func GetUserInput(round *uint32) (UserInput, error) {
 	userInput, err := reader.ReadString('\n')
 	FailOnError(err, "[Error] While reading your input!")
 
-	if userInput == "comenzar" {
+	if userInput == "comenzar\n" {
 		return UserInput{optCommand: "comenzar", isPlayerId: false}, nil
 
 	} else {
