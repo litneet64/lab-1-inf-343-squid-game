@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/litneet64/lab-2-squid-game/datanode"
@@ -76,11 +77,9 @@ func main() {
 	if len(os.Args[:]) < 2 {
 		show_help()
 	}
-	var playerId int
+	playerId, _ := strconv.Atoi(flag.Arg(1))
 
-	flag.IntVar(&playerId, "playerid", 0, "Specify player's ID (bot internals)")
-	flag.Parse()
-	DebugLogf("Arguments received: %s \nFlags parsed: playerId: %d \nTail: %+q", strings.Join(os.Args[1:], ", "), playerId, flag.Args())
+	DebugLogf("Arguments received: %+q", flag.Args())
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
@@ -88,7 +87,7 @@ func main() {
 	case "player":
 		// Spawn other 15 players on their own processes
 		for id := 1; id < playerNum; id++ {
-			exec.Command("/bin/bash", "-c", fmt.Sprintf("%v playerbot -playerid %d &", os.Args[0], id)).Start()
+			exec.Command("/bin/bash", "-c", fmt.Sprintf("%v playerbot %d &", os.Args[0], id)).Start()
 		}
 
 		player.Player_go("human", 0)
