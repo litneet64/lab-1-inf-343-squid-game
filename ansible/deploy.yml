@@ -19,7 +19,7 @@
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 5 && ./squid-bin leader &)"
+        cmd: "(sleep 40 && ./squid-bin leader &)"
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -29,7 +29,7 @@
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 5 && ./squid-bin namenode >namenode.out &)"
+        cmd: "(sleep 30 && ./squid-bin namenode &)"
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -39,7 +39,7 @@
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 5 && ./squid-bin datanode >datanode.out &)"
+        cmd: "(./squid-bin datanode &)"
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -49,7 +49,7 @@
   tasks:
     - name: Run on background
       shell:
-        cmd: "(sleep 5 && ./squid-bin pool >pool.out &)"
+        cmd: "(sleep 30 && ./squid-bin pool &)"
         chdir: "$HOME/squid-game"
       async: 30
       poll: 0
@@ -57,7 +57,7 @@
 - name: Start bot player
   hosts: players
   tasks:
-    - name: Start resumed player on background (attach to it with fg)
+    - name: Start player on background (attach to it with fg)
       shell: |
         (sleep 5 && ./squid-bin human &)
       args:
