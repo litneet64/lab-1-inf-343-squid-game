@@ -267,6 +267,7 @@ func Player_go(playerType string, playerId uint32) {
 	rand.Seed(time.Now().UnixNano())
 
 	gamedata.playerType = playerType
+	gamedata.playerId = playerId
 
 	leaderAddr = os.Getenv(leaderAddrEnv)
 	tmpAddr := strings.Join([]string{os.Getenv(bindAddrEnv), "%02d"}, "")
@@ -306,7 +307,6 @@ func Player_go(playerType string, playerId uint32) {
 
 			if parsedInput == "ingresar" {
 				DebugLog("Sending 'PlayerJoin' request to Leader")
-				gamedata.playerId = playerId
 				_, err = client.PlayerJoin(ctx,
 					&pb.JoinGameRequest{
 						PlayerId: &playerId,
