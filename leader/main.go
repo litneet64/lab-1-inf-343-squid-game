@@ -693,7 +693,7 @@ func Leader_go() {
 				respWasNil := false
 
 				// Wait for player to respond with ACK, when told to start the round
-				for resp == nil {
+				for resp == nil && gamedata.playerIdStates[i] != playerState.Dead {
 					if respWasNil {
 						DebugLogf("Player %s has not responded yet (ACK is nil)", playerKey)
 					}
