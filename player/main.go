@@ -276,9 +276,8 @@ func Player_go(playerType string, playerId uint32) {
 	defer conn.Close()
 
 	client := pb.NewGameInteractionClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	ctx, _ := context.WithTimeout(context.Background(), time.Minute*3)
 	gamedata.client = client
-	defer cancel()
 
 	// Start listening on port
 	go SetupPlayerServer(playerId)
@@ -326,14 +325,14 @@ func Player_go(playerType string, playerId uint32) {
 
 	// waits forever
 	forever_ch := make(chan bool)
+
 	go func() {
 
 		for {
-
-			log.Printf("Player %d has a forever channel running", playerId)
 			time.Sleep(100 * time.Millisecond)
 		}
 	}()
 
 	<-forever_ch
+	log.Print("THIS IS AFTER FOREVER CH")
 }
