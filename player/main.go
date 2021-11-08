@@ -343,6 +343,7 @@ func Player_go(playerType string, playerId uint32) {
 		for {
 			if gamedata.state == pb.PlayerState_DEAD {
 				time.Sleep(time.Second * 10)
+				DebugLogf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
 				log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
 			}
 			time.Sleep(time.Second)

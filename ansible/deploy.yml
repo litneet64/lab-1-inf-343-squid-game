@@ -68,6 +68,7 @@
 
 - name: Start bot player
   hosts: players
+  gather_facts: no
   tasks:
     - name: Start player on background (attach to it with fg)
       shell: |
