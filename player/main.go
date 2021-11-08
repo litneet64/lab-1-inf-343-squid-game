@@ -320,12 +320,21 @@ func Player_go(playerType string, playerId uint32) {
 				log.Printf("> No se pudo reconocer el comando, por favor inténtelo de nuevo.")
 			}
 		}
-	} else {
-		_, err = client.PlayerJoin(ctx,
-			&pb.JoinGameRequest{
-				PlayerId: &playerId,
-			})
-		FailOnError(err, "[Error] Couldn't connect to leader")
+	} else { // only for bot player
+		var resp *pb.JoinGameReply
+		resp = nil
+
+		// wait indefinitely until leader replies to join request
+		for resp == nil {
+			DebugLog("Sending 'PlayerJoin' request to Leader")
+			resp, err = client.PlayerJoin(ctx,
+				&pb.JoinGameRequest{
+					PlayerId: &playerId,
+				})
+
+			time.Sleep(time.Millisecond * 100)
+			FailOnError(err, "[Error] Couldn't connect to leader")
+		}
 	}
 
 	// waits forever

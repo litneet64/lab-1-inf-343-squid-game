@@ -16,7 +16,7 @@
 
     - name: Remove all logs
       shell: |
-        rm *.log
+        rm -f *.log
       args:
         chdir: "$HOME/squid-game"
 
