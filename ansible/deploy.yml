@@ -14,6 +14,12 @@
           kill $pid || echo "Process wasn't running";
         done
 
+    - name: Remove all logs
+      shell: |
+        rm *.log
+      args:
+        chdir: "$HOME/squid-game"
+
 - name: Start datanodes
   hosts: datanodes
   tasks:
