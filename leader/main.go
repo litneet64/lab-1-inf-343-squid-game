@@ -290,8 +290,9 @@ func (s *server) PlayerAction(ctx context.Context, in *pb.PlayerMove) (*pb.Playe
 	}
 
 	PublishDeadPlayer(&playerId, &stage)
+	gamedata.currPlayers--
+	gamedata.playerIdStates[playerId] = playerState.Dead
 	return &pb.PlayerState{PlayerState: pb.PlayerState_DEAD.Enum()}, nil
-
 }
 
 // Send player death to Pool via RabbitMQ
@@ -701,7 +702,7 @@ func Leader_go() {
 							PlayerState: pb.RoundState_ALIVE.Enum(),
 						})
 
-					time.Sleep(time.Millisecond * 500)
+					time.Sleep(time.Millisecond * 100)
 					respWasNil = true
 				}
 

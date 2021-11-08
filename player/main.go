@@ -181,7 +181,7 @@ func ProcessPlayerMove(stage uint32, round uint32) {
 		gamedata.state = roundResult
 
 		if roundResult == pb.PlayerState_DEAD {
-			DebugLog("\t[ProcessPlayerMove] Leader chose player randomly and killed this process")
+			DebugLog("\t[ProcessPlayerMove] Leader decided this player has died. Killing this process...")
 			// If the player died, then kill the current process
 			log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
 		}
