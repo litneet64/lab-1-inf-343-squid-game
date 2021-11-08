@@ -183,6 +183,7 @@ func (s *server) PlayerAction(ctx context.Context, in *pb.PlayerMove) (*pb.Playe
 
 	switch gamedata.stage {
 	case 0:
+		// recieve move from player
 		stage1Players++
 
 		if playerMove <= gamedata.leaderNumber {
@@ -618,7 +619,10 @@ func Leader_go() {
 			if gamedata.stage < 1 && gamedata.round > 0 {
 
 				DebugLog("Waiting for players to send their moves...")
+
 				for stage1Players < gamedata.currPlayers {
+					DebugLogf("currPlayers: %d", gamedata.currPlayers)
+					DebugLogf("stage1Players: %d", stage1Players)
 					time.Sleep(100 * time.Millisecond)
 				}
 
