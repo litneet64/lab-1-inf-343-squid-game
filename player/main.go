@@ -179,10 +179,10 @@ func ProcessPlayerMove(stage uint32, round uint32) {
 		roundResult, _ := SendPlayerMove(ctx, gamedata.client, &move.optNumber)
 		gamedata.state = roundResult
 
+		// player died, update internal state
 		if roundResult == pb.PlayerState_DEAD {
 			DebugLog("\t[ProcessPlayerMove] Leader decided this player has died. Killing this process...")
-			// If the player died, then kill the current process
-			log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+			gamedata.state = pb.PlayerState_DEAD
 		}
 	} else {
 		DebugLog("\t[ProcessPlayerMove] Requesting to read pool price to Leader")
@@ -342,8 +342,7 @@ func Player_go(playerType string, playerId uint32) {
 	go func() {
 		for {
 			if gamedata.state == pb.PlayerState_DEAD {
-				time.Sleep(time.Second * 10)
-				DebugLogf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+				DebugLogf("Displaying: \"Jugador \"%d\" ha muerto, terminando el proceso.\"", gamedata.playerId)
 				log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
 			}
 			time.Sleep(time.Second)
