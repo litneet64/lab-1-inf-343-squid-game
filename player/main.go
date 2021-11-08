@@ -135,18 +135,13 @@ func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.Pla
 
 	if in.GetPlayerState() == pb.RoundState_DEAD {
 		// If the player died, then kill the current process
-		defer KillPlayer()
+		gamedata.state = pb.PlayerState_DEAD
 	} else {
 		// Choose a number after responding with ACK (empty)
 		defer ProcessPlayerMove(stage, round)
 	}
 
 	return &pb.PlayerAck{}, nil
-}
-
-func KillPlayer() {
-	time.Sleep(time.Second)
-	log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
 }
 
 // Ask user for input or randomly choose a number (if Player is a bot), then send it to
@@ -345,8 +340,10 @@ func Player_go(playerType string, playerId uint32) {
 	forever_ch := make(chan bool)
 
 	go func() {
-
 		for {
+			if gamedata.state == pb.PlayerState_DEAD {
+				log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+			}
 			time.Sleep(time.Second)
 		}
 	}()
