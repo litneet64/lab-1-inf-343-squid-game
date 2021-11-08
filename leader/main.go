@@ -692,7 +692,7 @@ func Leader_go() {
 
 				for resp == nil {
 					if respWasNil {
-						DebugLogf("Player has not responded yet (ACK is nil)")
+						DebugLogf("Player %s has not responded yet (ACK is nil)", playerKey)
 					}
 
 					resp, _ = (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
