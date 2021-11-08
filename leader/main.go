@@ -620,9 +620,9 @@ func Leader_go() {
 
 				DebugLog("Waiting for players to send their moves...")
 
-				for stage1Players < gamedata.currPlayers {
-					DebugLogf("currPlayers: %d", gamedata.currPlayers)
-					DebugLogf("stage1Players: %d", stage1Players)
+				freezeCurrPlayers := gamedata.currPlayers
+				for stage1Players < freezeCurrPlayers {
+					DebugLogf("Checking variables: currPlayers: %d, freezeCurrPlayers: %d, stage1Players: %d", gamedata.currPlayers, freezeCurrPlayers, stage1Players)
 					time.Sleep(100 * time.Millisecond)
 				}
 
