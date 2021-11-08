@@ -141,7 +141,7 @@ func setupPoolServer() {
 	}
 	s := grpc.NewServer()
 	pb.RegisterPrizeServer(s, &server{})
-	log.Printf("server listening at %v", lis.Addr())
+	DebugLogf("server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
@@ -200,10 +200,10 @@ func Pool_go() {
 			playerId, _ := strconv.Atoi(text[0])
 			stage, _ := strconv.Atoi(text[1])
 			RegisterPlayerDeath(uint32(playerId), uint32(stage))
+			DebugLogf("Registering player %d, who died in stage %d", playerId, stage)
 		}
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	DebugLogf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
-	log.Println("[+] Success!")
 }

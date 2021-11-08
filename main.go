@@ -1,8 +1,13 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/litneet64/lab-2-squid-game/datanode"
 	"github.com/litneet64/lab-2-squid-game/leader"
@@ -11,30 +16,87 @@ import (
 	"github.com/litneet64/lab-2-squid-game/pool"
 )
 
+type DebugLogger struct {
+	fileName    string
+	initialized bool
+}
+
+func InitLogger(fileName string) {
+	dlogger.fileName = fileName
+	dlogger.initialized = true
+}
+
+func DebugLog(msg ...string) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLog] logger was not initialized")
+	}
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(strings.Join(msg, " "))
+}
+
+func DebugLogf(msg string, a ...interface{}) {
+	if !dlogger.initialized {
+		log.Fatalf("[DebugLogf] logger was not initialized")
+	}
+
+	f, err := os.OpenFile(dlogger.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	FailOnError(err, fmt.Sprintf("[InitLogger] Could not open file \"%s\": %v", dlogger.fileName, err))
+	defer f.Close()
+
+	logger := log.New(f, "", log.LstdFlags|log.Lmicroseconds)
+	logger.Println(fmt.Sprintf(msg, a...))
+}
+
+func FailOnError(err error, msg string) {
+	if err != nil {
+		DebugLogf("[Fatal] %s: %v", msg, err)
+		log.Fatalf("[Fatal] %s: %v", msg, err)
+	}
+}
+
+var dlogger DebugLogger
+
+// DEBUG TESTING --
+
 const (
-	playerId  = 0
 	playerNum = 16
 )
 
 func show_help() {
-	log.Fatalf("[!] Usage: %s <role [leader/player/namenode/datanode/pool]>", os.Args[0])
+	log.Fatalf("[!] Usage: %s <role [leader/player/playerbot/namenode/datanode/pool]>", os.Args[0])
 }
 
 func main() {
+	InitLogger("hub.log")
+
 	if len(os.Args[:]) < 2 {
 		show_help()
 	}
+
+	flag.Parse()
+	playerId, _ := strconv.Atoi(strings.TrimSpace(flag.Arg(1)))
+
+	DebugLogf("Arguments received: %+q", flag.Args())
+	DebugLogf("Arguments received: %v, %v => %d", flag.Arg(0), flag.Arg(1), playerId)
 
 	switch cmd := os.Args[1]; cmd {
 	case "leader":
 		leader.Leader_go()
 	case "player":
-		// Instantiate other 15 players
+		// Spawn other 15 players on their own processes
 		for id := 1; id < playerNum; id++ {
-			go player.Player_go("bot", uint32(id))
+			exec.Command("/bin/bash", "-c", fmt.Sprintf("%v playerbot %d &", os.Args[0], id)).Start()
 		}
 
-		player.Player_go("human", playerId)
+		player.Player_go("human", 0)
+	case "playerbot":
+		DebugLogf("Starting bot %d", playerId)
+		player.Player_go("bot", uint32(playerId))
 	case "namenode":
 		namenode.Namenode_go()
 	case "datanode":

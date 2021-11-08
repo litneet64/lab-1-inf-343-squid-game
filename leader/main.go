@@ -83,12 +83,12 @@ type PlayerState struct {
 
 // holds required data for a succesful grpc preamble dial
 type GrpcData struct {
-	ctx          *context.Context
+	ctx          context.Context
 	conn         *grpc.ClientConn
-	clientData   *pb.DataRegistryServiceClient
-	clientPlayer *pb.GameInteractionClient
-	clientPrize  *pb.PrizeClient
-	cancel       *context.CancelFunc
+	clientData   pb.DataRegistryServiceClient
+	clientPlayer pb.GameInteractionClient
+	clientPrize  pb.PrizeClient
+	cancel       context.CancelFunc
 }
 
 type RabbitMqData struct {
@@ -164,7 +164,8 @@ var (
 		"pool":     {},
 	}
 
-	stage2PlayerGroups [2]PlayerGroup
+	stage1Players      uint32         // Count how many players have done their move
+	stage2PlayerGroups [2]PlayerGroup //
 	stage3PlayerGroups []PlayerGroup
 )
 
@@ -182,6 +183,9 @@ func (s *server) PlayerAction(ctx context.Context, in *pb.PlayerMove) (*pb.Playe
 
 	switch gamedata.stage {
 	case 0:
+		// recieve move from player
+		stage1Players++
+
 		if playerMove <= gamedata.leaderNumber {
 			return &pb.PlayerState{PlayerState: pb.PlayerState_ALIVE.Enum()}, nil
 		}
@@ -287,8 +291,9 @@ func (s *server) PlayerAction(ctx context.Context, in *pb.PlayerMove) (*pb.Playe
 	}
 
 	PublishDeadPlayer(&playerId, &stage)
+	gamedata.currPlayers--
+	gamedata.playerIdStates[playerId] = playerState.Dead
 	return &pb.PlayerState{PlayerState: pb.PlayerState_DEAD.Enum()}, nil
-
 }
 
 // Send player death to Pool via RabbitMQ
@@ -345,10 +350,10 @@ func (s *server) RequestCommand(ctx context.Context, in *pb.PlayerCommand) (*pb.
 	switch in.GetCommand() {
 	case pb.PlayerCommand_POOL:
 		// Re send round start to player
-		playerClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPlayer)
+		playerClient := grpcmap[fmt.Sprintf("player_%d", playerId)].clientPlayer
 		defer playerClient.RoundStart(ctx, in.GetRoundState())
 
-		prizeClient := (*grpcmap[fmt.Sprintf("player_%d", playerId)].clientPrize)
+		prizeClient := grpcmap[fmt.Sprintf("player_%d", playerId)].clientPrize
 		prize := RequestPrize(ctx, prizeClient)
 		return &pb.CommandReply{Reply: &prize}, nil
 	}
@@ -365,35 +370,9 @@ func RequestPrize(ctx context.Context, client pb.PrizeClient) uint32 {
 	FailOnError(err, "[Leader] Couldn't communicate with Pool")
 
 	resp := response.GetCurrPrize()
-	log.Printf("[Leader] Pool prize response: %v", resp)
+	DebugLogf("[Leader] Pool prize response: %v", resp)
 
 	return resp
-}
-
-// call grpc preamble
-func SetupDial(addr string, grpcdata *GrpcData, entity string) (func() error, context.CancelFunc, error) {
-	var clientPlayer pb.GameInteractionClient
-	var clientData pb.DataRegistryServiceClient
-
-	DebugLogf("\t[SetupDial] Running function: SetupDial(addr: %s, grpcdata, entity: %s)", addr, entity)
-
-	conn, err := grpc.Dial(addr, grpc.WithInsecure())
-	grpcdata.conn = conn
-	FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
-
-	if entity != "namenode" && entity != "pool" {
-		clientPlayer = pb.NewGameInteractionClient(grpcdata.conn)
-		grpcdata.clientPlayer = &clientPlayer
-	} else {
-		clientData = pb.NewDataRegistryServiceClient(grpcdata.conn)
-		grpcdata.clientData = &clientData
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	grpcdata.ctx = &ctx
-	grpcdata.cancel = &cancel
-
-	return conn.Close, cancel, err
 }
 
 // main server for player functionality
@@ -404,11 +383,10 @@ func LeaderToPlayerServer() {
 
 	leader_srv := grpc.NewServer()
 	pb.RegisterGameInteractionServer(leader_srv, &server{})
-	log.Printf("[Leader] Listening at %v", lis.Addr())
+	DebugLogf("[Leader] Listening at %v", lis.Addr())
 
-	if err := leader_srv.Serve(lis); err != nil {
-		log.Fatalf("[Leader] Could not bind to %v : %v", bindAddr, err)
-	}
+	err = leader_srv.Serve(lis)
+	FailOnError(err, fmt.Sprintf("[Leader] Could not bind to %v : %v", bindAddr, err))
 }
 
 // request player history from namenode
@@ -418,7 +396,7 @@ func RequestPlayerHistory(gamedata *GameData, grpcdata *GrpcData, playerId uint3
 	player_moves := make([]uint32, 0)
 
 	// Request stage player's history to namenode
-	stageData, err := (*grpcdata.clientData).RequestPlayerData(*grpcdata.ctx,
+	stageData, err := (grpcdata.clientData).RequestPlayerData(*&grpcdata.ctx,
 		&pb.DataRequestParams{
 			PlayerId: &playerId,
 		})
@@ -447,7 +425,7 @@ func SendPlayerMoves(grpcdata *GrpcData, gamedata *GameData) {
 	}
 
 	// Send message to datanode
-	_, err := (*grpcdata.clientData).TransferPlayerMoves(*grpcdata.ctx,
+	_, err := (grpcdata.clientData).TransferPlayerMoves(*&grpcdata.ctx,
 		&pb.PlayersMoves{
 			Stage:        &gamedata.stage,
 			Round:        &gamedata.round,
@@ -499,10 +477,10 @@ func GetLivingPlayers() (players []Player) {
 	return
 }
 
-func ProcessUserInput(round *uint32) bool {
-	DebugLogf("\t[ProcessUserInput] Running function: ProcessUserInput(round: %d)", *round)
+func ProcessUserInput() bool {
+	DebugLogf("\t[ProcessUserInput] Running function: ProcessUserInput(round: %d)", gamedata.round)
 
-	userInput, err := GetUserInput(round)
+	userInput, err := GetUserInput()
 	FailOnError(err, "")
 
 	if userInput.isPlayerId {
@@ -521,26 +499,27 @@ func ProcessUserInput(round *uint32) bool {
 	return false
 }
 
-func GetUserInput(round *uint32) (UserInput, error) {
-	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", *round)
+func GetUserInput() (UserInput, error) {
+	DebugLogf("\t[GetUserInput] Running function: GetUserInput(round: %d)", gamedata.round)
 
-	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", *round)
+	log.Printf("> Para comezar la ronda %d, ingrese \"comenzar\"", gamedata.round+1)
 	log.Printf("> Si desea consultar el historial de jugadas de un jugador, ingrese el id del jugador")
 
 	// Get user input
 	reader := bufio.NewReader(os.Stdin)
 	userInput, err := reader.ReadString('\n')
 	FailOnError(err, "[Error] While reading your input!")
+	parsedInput := strings.Trim(userInput, "\n")
 
-	if userInput == "comenzar\n" {
+	if parsedInput == "comenzar" {
 		return UserInput{optCommand: "comenzar", isPlayerId: false}, nil
 
 	} else {
 		// Convert string into an int
-		i_number, err := strconv.Atoi(userInput)
+		i_number, err := strconv.Atoi(parsedInput)
 		if err != nil {
 			log.Println("> No se pudo interpretar bien el input.")
-			return GetUserInput(round)
+			return GetUserInput()
 		}
 
 		return UserInput{optPlayerId: uint32(i_number), isPlayerId: true}, nil
@@ -560,6 +539,7 @@ func ShowPlayerHistory(playerId uint32, history *[]uint32) {
 // main leader function
 func Leader_go() {
 	InitLogger("leader.log")
+	rand.Seed(time.Now().UnixNano())
 
 	bindAddr = os.Getenv(bindAddrEnv)
 
@@ -571,8 +551,10 @@ func Leader_go() {
 	// Loop over all players to save grpc data
 	for i := 0; i < 16; i++ {
 		tmpAddr := strings.Join([]string{os.Getenv(playerAddrEnv), "%02d"}, "")
-		addrListMap[fmt.Sprintf("player_%d", i)] = fmt.Sprintf(tmpAddr, i)
-		grpcmap[fmt.Sprintf("player_%d", i)] = GrpcData{}
+
+		key := fmt.Sprintf("player_%d", i)
+		addrListMap[key] = fmt.Sprintf(tmpAddr, i)
+		grpcmap[key] = GrpcData{}
 	}
 
 	DebugLog("Starting game")
@@ -592,11 +574,32 @@ func Leader_go() {
 	}
 
 	// Setup clients and other grpc data for different kind of nodes
-	for entity, data := range grpcmap {
-		close, cancel, err := SetupDial(addrListMap[entity], &data, entity)
+	for entity := range grpcmap {
+		var entityData GrpcData
+
+		addr := addrListMap[entity]
+		DebugLogf("Setting up dial with addr=%s, entity=%s", addr, entity)
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
+		FailOnError(err, fmt.Sprintf("[Leader] Couldn't connect to target: %v", err))
+
+		entityData.conn = conn
+
+		if entity != "namenode" && entity != "pool" {
+			entityData.clientPlayer = pb.NewGameInteractionClient(conn)
+			DebugLogf("\t[SetupDial] grpcdata.clientPlayer=%v", entityData.clientPlayer)
+		} else {
+			entityData.clientData = pb.NewDataRegistryServiceClient(entityData.conn)
+			DebugLogf("\t[SetupDial] grpcdata.clientData=%v", entityData.clientData)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+		entityData.ctx = ctx
+		entityData.cancel = cancel
 		FailOnError(err, fmt.Sprintf("[Leader] Error while setting up gRPC preamble: %v", err))
 
-		defer close()
+		grpcmap[entity] = entityData
+
+		defer conn.Close()
 		defer cancel()
 	}
 
@@ -611,11 +614,26 @@ func Leader_go() {
 
 		// For each round, tell all (alive) players that the round started
 		for ; gamedata.round < gamedata.numRoundsPerStage[gamedata.stage]; gamedata.round++ {
+
+			// wait until every player has sent it's move
+			if gamedata.stage < 1 && gamedata.round > 0 {
+
+				DebugLog("Waiting for players to send their moves...")
+
+				freezeCurrPlayers := gamedata.currPlayers
+				for stage1Players < freezeCurrPlayers {
+					DebugLogf("Checking variables: currPlayers: %d, freezeCurrPlayers: %d, stage1Players: %d", gamedata.currPlayers, freezeCurrPlayers, stage1Players)
+					time.Sleep(100 * time.Millisecond)
+				}
+
+				stage1Players = 0
+			}
+
 			DebugLogf("Starting stage:%d, round:%d", gamedata.stage, gamedata.round)
 
 			// Start the next round as long as the user input specifies that.
 			// Otherwise, just repeat the process
-			startRound := ProcessUserInput(&gamedata.stage)
+			startRound := ProcessUserInput()
 			if !startRound {
 				gamedata.round--
 				continue
@@ -638,7 +656,7 @@ func Leader_go() {
 			}
 			DebugLogf("Leader chose number %d", gamedata.leaderNumber)
 
-			// Kill random odd player
+			// Kill random odd player if the total number is even
 			if gamedata.stage != 0 && gamedata.currPlayers%2 != 0 {
 				// Get random player
 				index := rand.Int31n(int32(gamedata.currPlayers))
@@ -650,7 +668,7 @@ func Leader_go() {
 				// Inform Pool about the dead player
 				PublishDeadPlayer(&playerId, &(gamedata.stage))
 				playerKey := fmt.Sprintf("player_%d", playerIndex)
-				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx, &pb.RoundState{
+				grpcmap[playerKey].clientPlayer.RoundStart(grpcmap[playerKey].ctx, &pb.RoundState{
 					Stage:       &(gamedata.stage),
 					Round:       &(gamedata.round),
 					PlayerState: pb.RoundState_DEAD.Enum(),
@@ -664,15 +682,36 @@ func Leader_go() {
 			}
 
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
+			// Iterate over living players to start next round by sending RoundStart
+			// request
 			for i := 0; i < int(gamedata.currPlayers); i++ {
+
+				DebugLogf("Requesting move to player %d", currPlayers[i].id)
+
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
 
-				(*grpcmap[playerKey].clientPlayer).RoundStart(*grpcmap[playerKey].ctx,
-					&pb.RoundState{
-						Stage:       &(gamedata.stage),
-						Round:       &(gamedata.round),
-						PlayerState: pb.RoundState_ALIVE.Enum(),
-					})
+				DebugLogf("State of player's client %v", grpcmap[playerKey].clientPlayer)
+
+				var resp *pb.PlayerAck
+				resp = nil
+				respWasNil := false
+
+				// Wait for player to respond with ACK, when told to start the round
+				for resp == nil && gamedata.playerIdStates[i] != playerState.Dead {
+					if respWasNil {
+						DebugLogf("Player %s has not responded yet (ACK is nil)", playerKey)
+					}
+
+					resp, _ = (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
+						&pb.RoundState{
+							Stage:       &(gamedata.stage),
+							Round:       &(gamedata.round),
+							PlayerState: pb.RoundState_ALIVE.Enum(),
+						})
+
+					time.Sleep(time.Millisecond * 100)
+					respWasNil = true
+				}
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}
@@ -681,7 +720,13 @@ func Leader_go() {
 	}
 	DebugLog("Ending game")
 	// End of game
-	finalPlayers := GetLivingPlayers()
+	livingPlayers := GetLivingPlayers()
+	var finalPlayers []uint32
+
+	for i := 0; i < len(livingPlayers); i++ {
+		finalPlayers[i] = livingPlayers[i].id
+	}
+
 	if len(finalPlayers) > 0 {
 		log.Printf("> Los ganadores del juego del calamar son 🦑: %v ", finalPlayers)
 	} else {
