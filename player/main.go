@@ -139,7 +139,7 @@ func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.Pla
 	}
 
 	// Choose a number after responding with ACK (empty)
-	defer ProcessPlayerMove(ctx, stage, round)
+	defer ProcessPlayerMove(stage, round)
 
 	return &pb.PlayerAck{}, nil
 
@@ -147,7 +147,7 @@ func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.Pla
 
 // Ask user for input or randomly choose a number (if Player is a bot), then send it to
 // the Leader, and process the Leader's response with the Player state
-func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
+func ProcessPlayerMove(stage uint32, round uint32) {
 	DebugLogf("\t[ProcessPlayerMove] Running function: ProcessPlayerMove(ctx, stage: %d, round: %d)", stage, round)
 
 	var move PlayerMove
@@ -170,9 +170,13 @@ func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
 		DebugLogf("\t[ProcessPlayerMove] Input was {number: %d, command: %s}", move.optNumber, move.optCommand.String())
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	defer cancel()
+
 	// Send selected number to server (Leader)
 	if move.isNumber {
 		DebugLog("\t[ProcessPlayerMove] Sending move to Leader")
+
 		roundResult, _ := SendPlayerMove(ctx, gamedata.client, &move.optNumber)
 		gamedata.state = roundResult
 
@@ -276,7 +280,8 @@ func Player_go(playerType string, playerId uint32) {
 	defer conn.Close()
 
 	client := pb.NewGameInteractionClient(conn)
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute*3)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	defer cancel()
 	gamedata.client = client
 
 	// Start listening on port
@@ -334,5 +339,4 @@ func Player_go(playerType string, playerId uint32) {
 	}()
 
 	<-forever_ch
-	log.Print("THIS IS AFTER FOREVER CH")
 }
