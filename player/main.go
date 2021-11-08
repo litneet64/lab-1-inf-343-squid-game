@@ -334,7 +334,7 @@ func Player_go(playerType string, playerId uint32) {
 	go func() {
 
 		for {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(time.Second)
 		}
 	}()
 

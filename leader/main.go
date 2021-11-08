@@ -590,7 +590,7 @@ func Leader_go() {
 			DebugLogf("\t[SetupDial] grpcdata.clientData=%v", entityData.clientData)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
 		entityData.ctx = ctx
 		entityData.cancel = cancel
 		FailOnError(err, fmt.Sprintf("[Leader] Error while setting up gRPC preamble: %v", err))
@@ -679,15 +679,20 @@ func Leader_go() {
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 
-				DebugLogf("Requesting move to player %d", currPlayers[i].index)
+				DebugLogf("Requesting move to player %d", currPlayers[i].id)
 
 				playerKey := fmt.Sprintf("player_%d", currPlayers[i].index)
-				(grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
+
+				DebugLogf("State of player's client %v", grpcmap[playerKey].clientPlayer)
+
+				resp, _ := (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
 					&pb.RoundState{
 						Stage:       &(gamedata.stage),
 						Round:       &(gamedata.round),
 						PlayerState: pb.RoundState_ALIVE.Enum(),
 					})
+
+				DebugLogf("Got player %d's ACK: %v", currPlayers[i].id, resp)
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}
