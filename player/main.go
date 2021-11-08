@@ -121,7 +121,7 @@ func SendPlayerCommand(ctx context.Context, client pb.GameInteractionClient, com
 
 	switch command {
 	case pb.PlayerCommand_POOL.Enum():
-		log.Printf("La cantidad de dinero en el pozo es de: %v", response.GetReply())
+		log.Printf("> La cantidad de dinero en el pozo es de: %v", response.GetReply())
 
 	}
 }
@@ -129,24 +129,24 @@ func SendPlayerCommand(ctx context.Context, client pb.GameInteractionClient, com
 // Recieve round start info
 func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.PlayerAck, err error) {
 	DebugLogf("\t[server:RoundStart] Running function: RoundStart(ctx, in: %s)", in.String())
+
 	stage := in.GetStage()
 	round := in.GetRound()
 
 	if in.GetPlayerState() == pb.RoundState_DEAD {
 		// If the player died, then kill the current process
-		log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+		gamedata.state = pb.PlayerState_DEAD
+	} else {
+		// Choose a number after responding with ACK (empty)
+		defer ProcessPlayerMove(stage, round)
 	}
 
-	// Choose a number after responding with ACK (empty)
-	defer ProcessPlayerMove(ctx, stage, round)
-
 	return &pb.PlayerAck{}, nil
-
 }
 
 // Ask user for input or randomly choose a number (if Player is a bot), then send it to
 // the Leader, and process the Leader's response with the Player state
-func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
+func ProcessPlayerMove(stage uint32, round uint32) {
 	DebugLogf("\t[ProcessPlayerMove] Running function: ProcessPlayerMove(ctx, stage: %d, round: %d)", stage, round)
 
 	var move PlayerMove
@@ -169,20 +169,20 @@ func ProcessPlayerMove(ctx context.Context, stage uint32, round uint32) {
 		DebugLogf("\t[ProcessPlayerMove] Input was {number: %d, command: %s}", move.optNumber, move.optCommand.String())
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	defer cancel()
+
 	// Send selected number to server (Leader)
 	if move.isNumber {
 		DebugLog("\t[ProcessPlayerMove] Sending move to Leader")
+
 		roundResult, _ := SendPlayerMove(ctx, gamedata.client, &move.optNumber)
 		gamedata.state = roundResult
 
-		switch roundResult {
-		case pb.PlayerState_DEAD:
-			DebugLog("\t[ProcessPlayerMove] Leader chose player randomly and killed this process")
-			// If the player died, then kill the current process
-			log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
-
-		case pb.PlayerState_WAITING:
-
+		// player died, update internal state
+		if roundResult == pb.PlayerState_DEAD {
+			DebugLog("\t[ProcessPlayerMove] Leader decided this player has died. Killing this process...")
+			gamedata.state = pb.PlayerState_DEAD
 		}
 	} else {
 		DebugLog("\t[ProcessPlayerMove] Requesting to read pool price to Leader")
@@ -204,23 +204,22 @@ func GetUserInput(stage uint32) (move PlayerMove, err error) {
 		// Otherwise, the range is from [1, 10]
 		log.Printf("> Ingrese número del 1 al 10 (inclusive) ")
 	}
-	log.Printf("o ingrese \"pozo\" para ver la cantidad de dinero actual: ")
+	log.Printf("> o ingrese \"pozo\" para ver la cantidad de dinero actual: ")
 
 	// Get user input
 	reader := bufio.NewReader(os.Stdin)
 	userInput, err := reader.ReadString('\n')
-	if err != nil {
-		log.Println("[Error] While reading your input!")
-		return
-	}
+	FailOnError(err, "[Error] Reading input")
+	parsedInput := strings.Trim(userInput, "\n")
+	DebugLogf("Player input was: \"%s\"", parsedInput)
 
-	if userInput == "pozo\n" {
+	if parsedInput == "pozo" {
 		DebugLog("\t[GetUserInput] User input was \"pozo\"")
 		return PlayerMove{optCommand: pb.PlayerCommand_POOL, isNumber: false}, nil
 
 	} else {
 		// Convert string into an int
-		i_number, err := strconv.Atoi(userInput)
+		i_number, err := strconv.Atoi(parsedInput)
 		if err != nil {
 			log.Println("> No se pudo interpretar bien el input.")
 			return GetUserInput(stage)
@@ -255,17 +254,20 @@ func SetupPlayerServer(playerId uint32) {
 
 	player_srv := grpc.NewServer()
 	pb.RegisterGameInteractionServer(player_srv, &server{})
-	log.Printf("[player %d] Listening at %v", playerId, lis.Addr())
+	DebugLogf("[player %d] Listening at %v", playerId, lis.Addr())
 
 	err = player_srv.Serve(lis)
+	DebugLogf("[player %d] started server successfully...", playerId)
 	FailOnError(err, fmt.Sprintf("[player %d] Could not bind to %v : %v", playerId, bindAddr, err))
 }
 
 func Player_go(playerType string, playerId uint32) {
 	// DEBUG LOGGER
-	InitLogger("player.log")
+	InitLogger(fmt.Sprintf("player_%d.log", playerId))
+	rand.Seed(time.Now().UnixNano())
 
 	gamedata.playerType = playerType
+	gamedata.playerId = playerId
 
 	leaderAddr = os.Getenv(leaderAddrEnv)
 	tmpAddr := strings.Join([]string{os.Getenv(bindAddrEnv), "%02d"}, "")
@@ -278,9 +280,9 @@ func Player_go(playerType string, playerId uint32) {
 	defer conn.Close()
 
 	client := pb.NewGameInteractionClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	gamedata.client = client
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
 	defer cancel()
+	gamedata.client = client
 
 	// Start listening on port
 	go SetupPlayerServer(playerId)
@@ -298,16 +300,18 @@ func Player_go(playerType string, playerId uint32) {
 			log.Printf("> Para unirte al juego, escribe \"ingresar\": ")
 			userInput, err := reader.ReadString('\n')
 			FailOnError(err, "[Error] While reading your input!")
-			DebugLogf("Read user input: \"%s\"", userInput)
 
-			if userInput == "ingresar\n" {
+			parsedInput := strings.Trim(userInput, "\n")
+
+			DebugLogf("Read user input: \"%s\"", parsedInput)
+
+			if parsedInput == "ingresar" {
 				DebugLog("Sending 'PlayerJoin' request to Leader")
-				gamedata.playerId = playerId
 				_, err = client.PlayerJoin(ctx,
 					&pb.JoinGameRequest{
 						PlayerId: &playerId,
 					})
-				FailOnError(err, "[Error] Couldn't connect to leader\n")
+				FailOnError(err, "[Error] Couldn't connect to leader")
 
 				break
 			} else {
@@ -315,15 +319,35 @@ func Player_go(playerType string, playerId uint32) {
 				log.Printf("> No se pudo reconocer el comando, por favor inténtelo de nuevo.")
 			}
 		}
-	} else {
-		_, err = client.PlayerJoin(ctx,
-			&pb.JoinGameRequest{
-				PlayerId: &playerId,
-			})
-		FailOnError(err, "[Error] Couldn't connect to leader\n")
+	} else { // only for bot player
+		var resp *pb.JoinGameReply
+		resp = nil
+
+		// wait indefinitely until leader replies to join request
+		for resp == nil {
+			DebugLog("Sending 'PlayerJoin' request to Leader")
+			resp, err = client.PlayerJoin(ctx,
+				&pb.JoinGameRequest{
+					PlayerId: &playerId,
+				})
+
+			time.Sleep(time.Millisecond * 100)
+			FailOnError(err, "[Error] Couldn't connect to leader")
+		}
 	}
 
 	// waits forever
 	forever_ch := make(chan bool)
+
+	go func() {
+		for {
+			if gamedata.state == pb.PlayerState_DEAD {
+				DebugLogf("Displaying: \"Jugador \"%d\" ha muerto, terminando el proceso.\"", gamedata.playerId)
+				log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+			}
+			time.Sleep(time.Second)
+		}
+	}()
+
 	<-forever_ch
 }
