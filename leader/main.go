@@ -652,7 +652,7 @@ func Leader_go() {
 			}
 			DebugLogf("Leader chose number %d", gamedata.leaderNumber)
 
-			// Kill random odd player
+			// Kill random odd player if the total number is even
 			if gamedata.stage != 0 && gamedata.currPlayers%2 != 0 {
 				// Get random player
 				index := rand.Int31n(int32(gamedata.currPlayers))
@@ -678,6 +678,8 @@ func Leader_go() {
 			}
 
 			log.Printf("> Lista de jugadores vivos en etapa %d y ronda %d:", gamedata.stage, gamedata.round)
+			// Iterate over living players to start next round by sending RoundStart
+			// request
 			for i := 0; i < int(gamedata.currPlayers); i++ {
 
 				DebugLogf("Requesting move to player %d", currPlayers[i].id)
@@ -690,6 +692,7 @@ func Leader_go() {
 				resp = nil
 				respWasNil := false
 
+				// Wait for player to respond with ACK, when told to start the round
 				for resp == nil {
 					if respWasNil {
 						DebugLogf("Player %s has not responded yet (ACK is nil)", playerKey)

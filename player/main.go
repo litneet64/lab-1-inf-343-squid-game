@@ -135,14 +135,14 @@ func (s *server) RoundStart(ctx context.Context, in *pb.RoundState) (ret *pb.Pla
 
 	if in.GetPlayerState() == pb.RoundState_DEAD {
 		// If the player died, then kill the current process
-		log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+		defer log.Fatalf("> Jugador \"%d\" ha muerto, terminando el proceso.", gamedata.playerId)
+
+	} else {
+		// Choose a number after responding with ACK (empty)
+		defer ProcessPlayerMove(stage, round)
 	}
 
-	// Choose a number after responding with ACK (empty)
-	defer ProcessPlayerMove(stage, round)
-
 	return &pb.PlayerAck{}, nil
-
 }
 
 // Ask user for input or randomly choose a number (if Player is a bot), then send it to
