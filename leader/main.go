@@ -685,14 +685,25 @@ func Leader_go() {
 
 				DebugLogf("State of player's client %v", grpcmap[playerKey].clientPlayer)
 
-				resp, _ := (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
-					&pb.RoundState{
-						Stage:       &(gamedata.stage),
-						Round:       &(gamedata.round),
-						PlayerState: pb.RoundState_ALIVE.Enum(),
-					})
+				var resp *pb.PlayerAck
+				resp = nil
+				respWasNil := false
 
-				DebugLogf("Got player %d's ACK: %v", currPlayers[i].id, resp)
+				for resp == nil {
+					if respWasNil {
+						DebugLogf("Player has not responded yet (ACK is nil)")
+					}
+
+					resp, _ = (grpcmap[playerKey].clientPlayer).RoundStart(grpcmap[playerKey].ctx,
+						&pb.RoundState{
+							Stage:       &(gamedata.stage),
+							Round:       &(gamedata.round),
+							PlayerState: pb.RoundState_ALIVE.Enum(),
+						})
+
+					time.Sleep(time.Millisecond * 500)
+					respWasNil = true
+				}
 
 				log.Printf(">    - Jugador %d", currPlayers[i].id)
 			}
